@@ -4,10 +4,10 @@ description: An AI prompt technique for auditing AI-generated ("vibe coded") Saa
 ---
 
 <Callout type="info">
-  This page summarizes and links to an external source rather than
-  reproducing it — the original is the author's own writing, and this
-  reference only quotes short fragments for illustration. Read the original
-  for the exact, ready-to-paste prompt text.
+  The prompt below is an original English write-up of this technique — same
+  workflow and five vulnerability categories, own wording throughout — not a
+  translation of the source article. Read the original (linked below) for
+  its exact Portuguese prompt text.
 </Callout>
 
 A technique for using an AI coding assistant to audit its own (or another
@@ -46,26 +46,106 @@ detected stack:
    unescaped user input reaching HTML (emails, templates, responses) on the
    backend.
 
-## Audit rules it enforces
+## Ready-to-use prompt
 
-- Report only findings verified in the actual code — no speculation — each
-  with file path, exact line number(s), the code snippet, why it's
-  exploitable, and a severity rating.
-- Also record what was checked and found **correct** (e.g. "this router
-  validates ownership in every handler"), so the strengths section
-  demonstrates real coverage rather than just listing problems.
-- Explicitly say when a category doesn't apply to the detected stack,
-  instead of forcing a finding.
+An original English version of the same technique — paste this into an AI
+coding assistant pointed at a codebase you're authorized to test.
 
-## Output format
+```text
+Audit this codebase for the following vulnerability classes. Before you
+start, identify the project's stack (language, framework, ORM/query
+builder, auth mechanism, frontend, and deployment tooling — Docker, CI,
+Helm, Terraform) and adapt each check below to that stack's actual
+mechanisms.
 
-The prompt asks the assistant to generate a polished PDF report (cover page,
-executive summary with severity charts, a strengths/weaknesses breakdown,
-a detailed findings table) and, at the end of that same report, a
-copy-pasteable Markdown block **per actionable finding** formatted as a
-ready-to-file GitHub issue (title, labels, description, evidence,
-impact, fix suggestion, and acceptance criteria) — grouping trivial related
-findings into one issue to avoid flooding the tracker.
+1. MISSING TENANT ISOLATION — list/search/aggregate/export queries that
+don't scope by the authenticated user or their organization/workspace/
+tenant. First identify what isolation mechanism the project actually uses
+(Postgres RLS, a tenant middleware, manual user_id filtering, etc.), then
+find every place it's missing or bypassable.
+
+2. CLIENT-SIDE-ONLY AUTHORIZATION — privileged actions (admin panels,
+settings, user management, destructive writes) where the frontend hides UI
+by role (isAdmin, canEdit, ...) but the backend never re-checks that role on
+the matching endpoint. Match every frontend role gate to its backend route
+and confirm the server enforces it independently.
+
+3. IDOR — any route that reads, updates, or deletes an object by ID (in the
+path, query, or body) without verifying the object belongs to the caller's
+user/tenant. Check every route handler, not a sample.
+
+4. HARDCODED SECRETS — API keys, tokens, passwords, signing secrets (JWT,
+webhooks), private keys, and default credentials baked into source, config
+files, docker-compose, Helm charts, CI pipelines, scripts, or docs. Pay
+particular attention to defaults that silently become real secrets if never
+overridden (e.g. ${VAR:-fallback}), and to the absence of a startup check
+that rejects those defaults. Also check git history for committed secrets
+and the frontend bundle for embedded keys.
+
+5. UNSANITIZED INPUT (XSS) — on the frontend: innerHTML,
+dangerouslySetInnerHTML and framework equivalents (v-html, [innerHTML],
+...), unsanitized markdown/HTML rendering, user-controlled href/src values,
+eval/new Function. On the backend: user input reaching HTML in emails,
+templates, or responses without escaping. Confirm whether a sanitization
+library exists in the project and whether it's actually applied at each
+point you find.
+
+AUDIT RULES:
+- Report only findings you've verified in the actual code — no speculation.
+  For each finding: file path, exact line number(s), the relevant code, why
+  it's exploitable, and a severity (critical/high/medium/low/informational).
+- Go file by file, line by line.
+- Also record what you checked and found to be correctly handled (e.g.
+  "this router validates ownership in every handler") — this becomes a
+  strengths section and demonstrates the audit's actual coverage.
+- When a category doesn't apply to the detected stack (e.g. no frontend),
+  say so explicitly instead of forcing a finding.
+- Note any conditions required for exploitability (feature flags, a
+  specific insecure config, etc.).
+
+AFTER THE AUDIT, generate a PDF report saved to
+docs/security-audit/security-audit-report.pdf containing:
+
+a) Cover page: title, date, audited scope, and a short methodology note on
+   how each category was mapped to the detected stack.
+b) Executive summary: total findings by severity, a donut chart by severity
+   and a bar chart by category.
+c) Strengths (what's protected, with evidence) and weaknesses (the core
+   risks).
+d) A detailed findings table per category: Severity | File:line |
+   Description, with a colored severity chip.
+e) Prioritized recommendations (P1, P2, P3...).
+f) At the end of the PDF, a "GITHUB ISSUES" section: for each actionable
+   finding, the complete text of a ready-to-paste Markdown issue, each
+   inside a delimited block (e.g. between --- ISSUE n --- and --- END ISSUE
+   n ---), containing:
+   - Title formatted as "[Security] <short description>"
+   - Suggested labels: security + severity
+   - Problem description and why it's exploitable
+   - Evidence: file:line with the code snippet
+   - Impact
+   - Suggested fix
+   - Acceptance criteria (a checkable list)
+   Group closely related trivial findings into one issue where it makes
+   sense (e.g. several secret-default instances of the same pattern), to
+   avoid flooding the tracker.
+
+PDF GENERATION — TECHNICAL RULES:
+- Don't install anything globally. Use an isolated environment (a Python
+  venv with reportlab+matplotlib, or an equivalent tool already in the
+  local stack; a headless browser, wkhtmltopdf, or pandoc for HTML→PDF also
+  works).
+- Leave the generator script in docs/security-audit/ so the report can be
+  regenerated later.
+- Verify the generated PDF: page count, chart rendering, and table
+  legibility (rasterize pages if needed). Fix any visual defects before
+  delivering.
+- A4 pages, ~2cm margins, header/footer with the report name and page
+  number.
+
+Deliver at the end: the PDF report, the list of findings in chat (file by
+file, line by line), and the paths of every file generated.
+```
 
 <Callout type="warn">
   Only run an audit like this against code you're authorized to test, and
