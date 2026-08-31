@@ -23,9 +23,10 @@ rewrites links so the site can be browsed offline. Useful for:
 - Offline browsing.
 - Collecting endpoints referenced in static assets.
 
-```bash
-httrack https://domain.com -O httrack
-```
+<CommandInput
+  vars={{ domain: "domain.com" }}
+  command={`httrack https://{{domain}} -O httrack`}
+/>
 
 | Flag | Meaning |
 | --- | --- |

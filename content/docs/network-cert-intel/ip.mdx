@@ -1,11 +1,10 @@
 ---
-title: Cipher Suites / Certificates / Whois / IP / Domains
-description: TLS/certificate inspection, WHOIS/domain lookups, and host/IP intelligence.
+title: IP
+description: Host/IP intelligence — finding a target's real IP behind a proxy or CDN.
 ---
 
-Reference links for TLS/certificate inspection, WHOIS/domain lookups, and
-general host/IP intelligence — mostly browser-based tools, no CLI flags
-involved.
+General host/IP intelligence — including finding a target's real origin
+server IP when it's fronted by a CDN or reverse proxy like Cloudflare.
 
 ## Tools
 
@@ -18,15 +17,17 @@ asset discovery and finding shadow IT.
 
 #### Query: find the real origin IP behind Cloudflare
 
-```
-((<target-domain>) and not (host.services.software.vendor = "cloudflare" or web.software.vendor = "cloudflare")) and host.ip: *
-```
+<CommandInput
+  vars={{ target_domain: "example.com" }}
+  command={`(({{target_domain}}) and not (host.services.software.vendor = "cloudflare" or web.software.vendor = "cloudflare")) and host.ip: *`}
+  lang="text"
+/>
 
 **What it does:**
 
-- `(<target-domain>)` — matches hosts/certificates Censys associates with the
-  target domain (replace `<target-domain>` with the actual domain, e.g.
-  `example.com`).
+- `(target_domain)` — matches hosts/certificates Censys associates with the
+  target domain (fill in the `target_domain` field above with the actual
+  domain, e.g. `example.com`).
 - `not (host.services.software.vendor = "cloudflare" or web.software.vendor = "cloudflare")`
   — excludes any result where Censys has fingerprinted Cloudflare as the
   service or web software, i.e. filters out hosts that are just Cloudflare's
@@ -50,22 +51,5 @@ to only accept traffic from Cloudflare's IP ranges.
   right `Host` header) before treating it as the confirmed origin.
 </Callout>
 
-### [Who.is](https://who.is/)
-
-WHOIS lookup service — returns domain registration details (registrar,
-creation/expiry date, name servers) and basic IP/DNS info for a domain or
-IP.
-
-### [SSL Server Test — Qualys SSL Labs](https://www.ssllabs.com/ssltest)
-
-Runs a full TLS/SSL configuration audit against a public server: supported
-protocol versions, cipher suites, certificate chain validity, and known
-vulnerabilities (e.g. Heartbleed, POODLE). Grades the result A–F.
-
-## Quick CLI equivalents
-
-| Task | Command |
-| --- | --- |
-| View a site's certificate details | `openssl s_client -connect domain.com:443 -servername domain.com` |
-| List supported cipher suites | `nmap --script ssl-enum-ciphers -p 443 domain.com` |
-| Quick WHOIS from terminal | `whois domain.com` |
+See [Whois](/docs/network-cert-intel/whois) for basic IP/DNS info bundled
+into a domain's WHOIS record.

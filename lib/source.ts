@@ -3,6 +3,9 @@ import { loader } from 'fumadocs-core/source';
 
 const docs = defineDocs({
   dir: 'content/docs',
+  docs: {
+    lastModified: true,
+  },
 });
 
 export const source = loader({

@@ -26,9 +26,10 @@ the response.
 
 ## Manual test
 
-```bash
-curl -s -H "Origin: https://evil.com" -I https://target.com/api/endpoint
-```
+<CommandInput
+  vars={{ origin: "https://evil.com", url: "https://target.com/api/endpoint" }}
+  command={`curl -s -H "Origin: {{origin}}" -I {{url}}`}
+/>
 
 Check the response headers:
 

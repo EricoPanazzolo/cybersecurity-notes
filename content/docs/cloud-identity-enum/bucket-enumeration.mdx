@@ -12,9 +12,10 @@ A multi-cloud (AWS S3, Azure Blob, GCP Storage) name-permutation scanner.
 Good starting point since it also brute-forces common naming variations of a
 keyword (e.g. `target-name-backup`, `target-name-dev`, `target-name-prod`).
 
-```bash
-cloud_enum -k target-name -k target-com
-```
+<CommandInput
+  vars={{ keyword1: "target-name", keyword2: "target-com" }}
+  command={`cloud_enum -k {{keyword1}} -k {{keyword2}}`}
+/>
 
 ## Flag reference
 

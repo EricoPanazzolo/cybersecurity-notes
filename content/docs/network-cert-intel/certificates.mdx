@@ -1,0 +1,27 @@
+---
+title: Certificates
+description: Inspecting a server's TLS certificate details.
+---
+
+Inspecting the TLS certificate a server presents — issuer, validity dates,
+Subject Alternative Names (SANs), and chain — often reveals internal
+hostnames or related infrastructure not advertised anywhere else.
+
+## Quick CLI equivalent
+
+#### View a site's certificate details
+
+<CommandInput
+  vars={{ domain: "domain.com" }}
+  command={`openssl s_client -connect {{domain}}:443 -servername {{domain}}`}
+/>
+
+<Callout type="info">
+  [Censys Search](/docs/network-cert-intel/ip) also indexes certificates
+  across the internet — useful for finding every host presenting a specific
+  certificate, not just the one you're pointed at directly.
+</Callout>
+
+See [Cipher Suites](/docs/network-cert-intel/cipher-suites) for auditing the
+negotiated TLS protocol versions and ciphers instead of the certificate
+itself.

@@ -1,4 +1,4 @@
 {
   "title": "Network & Certificate Intelligence",
-  "pages": ["certs-whois-ip-domains"]
+  "pages": ["cipher-suites", "certificates", "whois", "ip", "domains"]
 }

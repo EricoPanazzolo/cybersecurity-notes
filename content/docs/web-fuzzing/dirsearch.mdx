@@ -9,15 +9,17 @@ on a web server, with built-in recursion and response filtering.
 
 ## Usage template
 
-```bash
-dirsearch -u <URL> -t <THREAD_NUMBER> -x <STATUS_CODE_FILTER> -r
-```
+<CommandInput
+  vars={{ url: "https://target.com" }}
+  command={`dirsearch -u {{url}} -t <THREAD_NUMBER> -x <STATUS_CODE_FILTER> -r`}
+/>
 
 ## Example (from original notes)
 
-```bash
-dirsearch -u <URL> -t 120 -x 400,404,403 -r -w /usr/share/wordlists/SecLists/Discovery/Web-Content/directory-list-2.3-big.txt
-```
+<CommandInput
+  vars={{ url: "https://target.com" }}
+  command={`dirsearch -u {{url}} -t 120 -x 400,404,403 -r -w /usr/share/wordlists/SecLists/Discovery/Web-Content/directory-list-2.3-big.txt`}
+/>
 
 ## Flag reference
 

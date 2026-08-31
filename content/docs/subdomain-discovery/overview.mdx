@@ -23,7 +23,7 @@ to a target domain, expanding the attack surface beyond the main site.
 ## Tools already documented in this reference
 
 - **[Amass](/docs/subdomain-discovery/amass)** — passive enumeration via public sources.
-- **[Gobuster](/docs/web-fuzzing/gobuster) (`dns` mode)** — active brute-force via wordlist.
+- **[Gobuster (DNS mode)](/docs/subdomain-discovery/gobuster-dns)** — active brute-force via wordlist.
 - **[BBOT](/docs/subdomain-discovery/bbot)** — automated pipeline combining both passive sources and active brute-force (`cloud-enum` preset).
 - **[FFUF](/docs/web-fuzzing/ffuf) (subdomain fuzzing)** — active brute-force via `Host` header/vhost `FUZZ`.
 
@@ -36,9 +36,10 @@ to a target domain, expanding the attack surface beyond the main site.
 
 ## Quick passive check (no tool required)
 
-```bash
-curl -s "https://crt.sh/?q=%25.domain.com&output=json" | jq -r '.[].name_value' | sort -u
-```
+<CommandInput
+  vars={{ domain: "domain.com" }}
+  command={`curl -s "https://crt.sh/?q=%25.{{domain}}&output=json" | jq -r '.[].name_value' | sort -u`}
+/>
 
 Queries certificate transparency logs ([crt.sh](https://crt.sh)) for any
 certificate ever issued containing `*.domain.com`, and prints the unique

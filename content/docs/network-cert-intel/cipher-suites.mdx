@@ -1,0 +1,28 @@
+---
+title: Cipher Suites
+description: Auditing TLS protocol versions and supported cipher suites.
+---
+
+Checking which TLS protocol versions and cipher suites a server supports —
+weak/outdated ciphers (e.g. RC4, export-grade, or pre-TLS 1.2) are a common
+finding on legacy infrastructure.
+
+## Tools
+
+### [SSL Server Test — Qualys SSL Labs](https://www.ssllabs.com/ssltest)
+
+Runs a full TLS/SSL configuration audit against a public server: supported
+protocol versions, cipher suites, certificate chain validity, and known
+vulnerabilities (e.g. Heartbleed, POODLE). Grades the result A–F.
+
+## Quick CLI equivalent
+
+#### List supported cipher suites
+
+<CommandInput
+  vars={{ domain: "domain.com" }}
+  command={`nmap --script ssl-enum-ciphers -p 443 {{domain}}`}
+/>
+
+See [Certificates](/docs/network-cert-intel/certificates) for inspecting the
+certificate itself (chain, expiry, SANs) rather than the negotiated ciphers.

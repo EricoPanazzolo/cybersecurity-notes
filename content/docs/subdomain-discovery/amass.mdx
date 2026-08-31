@@ -9,9 +9,10 @@ records, web archives, and other open sources.
 
 ## Enumerate subdomains, filter to valid ones
 
-```bash
-amass enum -passive -d domain.com | grep -oE '([a-zA-Z0-9_-]+\.)+domain\.com' > amass.txt
-```
+<CommandInput
+  vars={{ domain: "domain.com" }}
+  command={`amass enum -passive -d {{domain}} | grep -oE '([a-zA-Z0-9_-]+\\.)+{{domain}}' > amass.txt`}
+/>
 
 | Part | Meaning |
 | --- | --- |

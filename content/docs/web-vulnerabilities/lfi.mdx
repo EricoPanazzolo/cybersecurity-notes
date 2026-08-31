@@ -15,9 +15,11 @@ code execution.
 
 ## How it typically shows up
 
-```javascript
-https://target.com/index.php?page=about.php
-```
+<CommandInput
+  vars={{ target: "target.com" }}
+  command={`https://{{target}}/index.php?page=about.php`}
+  lang="text"
+/>
 
 If `page` is passed straight into an `include()`/`require()` call, an
 attacker may be able to swap it for another file path.

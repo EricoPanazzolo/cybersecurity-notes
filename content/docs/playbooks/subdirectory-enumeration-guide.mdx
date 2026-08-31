@@ -18,9 +18,10 @@ content-based filtering trick for sites with a fake/custom 404 page.
 
 ## Gobuster
 
-```bash
-gobuster dir -u https://domain.com -w /usr/share/wordlists/
-```
+<CommandInput
+  vars={{ domain: "domain.com" }}
+  command={`gobuster dir -u https://{{domain}} -w /usr/share/wordlists/`}
+/>
 
 | Flag | Meaning |
 | --- | --- |
@@ -29,27 +30,31 @@ gobuster dir -u https://domain.com -w /usr/share/wordlists/
 | `-w <wordlist>` | Wordlist path. |
 
 See the [dedicated Gobuster page](/docs/web-fuzzing/gobuster) for the full
-flag reference, including DNS mode.
+directory-mode flag reference (DNS mode is covered on the
+[Subdomain & Attack Surface Discovery](/docs/subdomain-discovery/gobuster-dns)
+page).
 
 ## FFUF (length/status-based)
 
-```bash
-ffuf -u "https://target.com/FUZZ" \
-  -w /usr/share/wordlists/SecLists/Discovery/Web-Content/DirBuster-2007_directory-list-lowercase-2.3-big.txt \
-  -mc 200,204,301,302,307,401,403 \
-  -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0" \
-  -t 60 --rate 100 | \
-  awk '{print "https://target.com/"$1}' > domain.txt
-```
+<CommandInput
+  vars={{ domain: "target.com" }}
+  command={`ffuf -u "https://{{domain}}/FUZZ" \\
+  -w /usr/share/wordlists/SecLists/Discovery/Web-Content/DirBuster-2007_directory-list-lowercase-2.3-big.txt \\
+  -mc 200,204,301,302,307,401,403 \\
+  -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0" \\
+  -t 60 --rate 100 | \\
+  awk '{print "https://{{domain}}/"$1}' > domain.txt`}
+/>
 
 ## FFUF (content-based filtering — for sites with a fake 404 page)
 
-```bash
-ffuf -u https://target.com/FUZZ \
-  -w /usr/share/wordlists/dirb/big.txt \
-  -fr "was not found on this server" \
-  -o ffuf_result.json -of json
-```
+<CommandInput
+  vars={{ domain: "target.com" }}
+  command={`ffuf -u https://{{domain}}/FUZZ \\
+  -w /usr/share/wordlists/dirb/big.txt \\
+  -fr "was not found on this server" \\
+  -o ffuf_result.json -of json`}
+/>
 
 <Callout type="info">
   Before using this, check what the site's fake-404 page actually says.

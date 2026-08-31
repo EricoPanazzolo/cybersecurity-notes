@@ -1,6 +1,7 @@
 ---
 title: BBOT
 description: Recursive OSINT/attack-surface scanner built on chained presets.
+full: true
 ---
 
 **BBOT** (Bighuge BLS OSINT Tool) is a recursive OSINT/attack-surface
@@ -11,14 +12,15 @@ etc.
 
 ## Example scan
 
-```bash
-bbot -t TARGET \
-  -p cloud-enum web-heavy spider webbrute wayback code-enum js-audit baddns nuclei lightfuzz-light \
-  -c modules.nuclei.severity=low,medium,high,critical \
-  -y \
-  -n enum_TARGET_2026 \
-  -o .
-```
+<CommandInput
+  vars={{ target: "domain.com" }}
+  command={`bbot -t {{target}} \\
+  -p cloud-enum web-heavy spider webbrute wayback code-enum js-audit baddns nuclei lightfuzz-light \\
+  -c modules.nuclei.severity=low,medium,high,critical \\
+  -y \\
+  -n enum_{{target}}_2026 \\
+  -o .`}
+/>
 
 ## Top-level flag reference
 

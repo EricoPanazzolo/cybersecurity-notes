@@ -1,6 +1,7 @@
 ---
 title: Azure AD / Entra ID Tenant Enumeration
 description: Unauthenticated tenant, federation, and username recon against Microsoft's login infrastructure.
+full: true
 ---
 
 Reconnaissance technique for identifying and enumerating a target's
@@ -11,7 +12,7 @@ requests in the background.
 
 ## What you learn
 
-Running the sequence below against a target domain (`<target-domain>`) can
+Running the sequence below against a target domain (`target_domain`) can
 confirm:
 
 - Whether the domain is bound to a real Microsoft 365 / Entra ID tenant, and
@@ -41,8 +42,9 @@ registration of your own. Together they answer: *is this domain a real
 tenant, how does it authenticate, does a given username exist, what are its
 OAuth endpoints, and which client apps can authenticate against it?*
 
-Replace `<target-domain>` with the domain being tested, and `<email>` with a
-specific email address on that domain.
+Fill in the `target_domain` field with the domain being tested, and `email`
+with a specific email address on that domain — each command block below
+updates live as you type.
 
 ### 1. Realm discovery — confirm the tenant exists and how it authenticates
 
@@ -53,9 +55,10 @@ identity provider, without sending a password or risking a lockout. It's the
 same check tools like MSOLSpray, o365creeper, and AADInternals'
 `Get-AADIntLoginInformation` automate as their first step.
 
-```bash
-curl -s "https://login.microsoftonline.com/getuserrealm.srf?login=<email>&xml=1"
-```
+<CommandInput
+  vars={{ email: "user@target-domain.com" }}
+  command={`curl -s "https://login.microsoftonline.com/getuserrealm.srf?login={{email}}&xml=1"`}
+/>
 
 **What it does:** queries the legacy "user realm" endpoint that Microsoft's
 login page calls right after a user types their email, to decide which auth
@@ -91,16 +94,17 @@ exposes.
 
 **Why run it:** because it distinguishes "valid account" from "invalid
 account" pre-authentication, an attacker can feed it a list of guessed
-emails (e.g. `firstname.lastname@<target-domain>` scraped from LinkedIn) and
+emails (e.g. `firstname.lastname@target_domain` scraped from LinkedIn) and
 build a confirmed valid-username list to seed a password-spray attack. This
 is the technique o365creeper, MSOLSpray, and AADInternals'
 `Invoke-AADIntUserEnumerationAsOutsider` automate.
 
-```bash
-curl -s -X POST "https://login.microsoftonline.com/common/GetCredentialType" \
-  -H "Content-Type: application/json" \
-  -d '{"Username":"<email>"}' | jq '.IfExistsResult, .ThrottleStatus'
-```
+<CommandInput
+  vars={{ email: "user@target-domain.com" }}
+  command={`curl -s -X POST "https://login.microsoftonline.com/common/GetCredentialType" \\
+  -H "Content-Type: application/json" \\
+  -d '{"Username":"{{email}}"}' | jq '.IfExistsResult, .ThrottleStatus'`}
+/>
 
 **What it does:**
 
@@ -154,10 +158,11 @@ authentication required, and the response both confirms the domain is a
 registered Microsoft 365/Entra ID tenant and reveals its tenant GUID plus
 supported auth flows.
 
-```bash
-curl -s "https://login.microsoftonline.com/<target-domain>/.well-known/openid-configuration" \
-| jq '.issuer, .authorization_endpoint'
-```
+<CommandInput
+  vars={{ target_domain: "target-domain.com" }}
+  command={`curl -s "https://login.microsoftonline.com/{{target_domain}}/.well-known/openid-configuration" \\
+| jq '.issuer, .authorization_endpoint'`}
+/>
 
 **What it does:** hits Microsoft's standard OIDC discovery endpoint. The
 domain segment in the URL is the tenant identifier — Entra ID lets you
@@ -191,19 +196,23 @@ pre-registered app of your own — it's the same flow AADInternals and various
 device-code-phishing proof-of-concepts use to probe or interact with a
 tenant using Microsoft's own pre-consented first-party client IDs.
 
-```bash
-curl -s -X POST "https://login.microsoftonline.com/<target-domain>/oauth2/v2.0/devicecode" \
-  -d "client_id=<client-id>" \
-  -d "scope=https://graph.microsoft.com/.default offline_access"
-```
+<CommandInput
+  vars={{
+    target_domain: "target-domain.com",
+    client_id: "04b07795-8ddb-461a-bbee-02f9e1bff005",
+  }}
+  command={`curl -s -X POST "https://login.microsoftonline.com/{{target_domain}}/oauth2/v2.0/devicecode" \\
+  -d "client_id={{client_id}}" \\
+  -d "scope=https://graph.microsoft.com/.default offline_access"`}
+/>
 
 **What it does:**
 
 | Part | Meaning |
 | --- | --- |
 | `-X POST` | The endpoint only accepts POST. |
-| `<target-domain>` in the URL | Tenant identifier — same pattern as the OIDC discovery endpoint in step 3. |
-| `client_id=<client-id>` | The Azure AD application requesting access — see the well-known client IDs below if you don't have your own registered app. |
+| `target_domain` in the URL | Tenant identifier — same pattern as the OIDC discovery endpoint in step 3. |
+| `client_id=<client_id>` | The Azure AD application requesting access — see the well-known client IDs below if you don't have your own registered app. |
 | `scope=https://graph.microsoft.com/.default offline_access` | Requests default Microsoft Graph permissions plus a refresh token (`offline_access`), so the resulting token doesn't expire in an hour. |
 
 **Expected result:** on success, a JSON response containing a `device_code`,

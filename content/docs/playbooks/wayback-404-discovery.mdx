@@ -16,19 +16,22 @@ credentials, etc.).
 
 ## Step 1 — Pull every archived URL under the domain
 
-```
-https://web.archive.org/cdx/search/cdx?url=*.domain.com/*&collapse=urlkey&output=text&fl=original
-```
+<CommandInput
+  vars={{ domain: "domain.com" }}
+  command={`https://web.archive.org/cdx/search/cdx?url=*.{{domain}}/*&collapse=urlkey&output=text&fl=original`}
+  lang="text"
+/>
 
 Or via curl:
 
-```bash
-curl -G "https://web.archive.org/cdx/search/cdx" \
-  --data-urlencode "url=*.domain.com/*" \
-  --data-urlencode "collapse=urlkey" \
-  --data-urlencode "output=text" \
-  --data-urlencode "fl=original" > web-archive.txt
-```
+<CommandInput
+  vars={{ domain: "domain.com" }}
+  command={`curl -G "https://web.archive.org/cdx/search/cdx" \\
+  --data-urlencode "url=*.{{domain}}/*" \\
+  --data-urlencode "collapse=urlkey" \\
+  --data-urlencode "output=text" \\
+  --data-urlencode "fl=original" > web-archive.txt`}
+/>
 
 <Callout type="info">
   The original curl command had a typo — `collpase` instead of `collapse` —

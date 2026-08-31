@@ -11,6 +11,8 @@
     "web-vulnerabilities",
     "network-cert-intel",
     "---Workflows---",
-    "playbooks"
+    "playbooks",
+    "---AI---",
+    "ai-prompts"
   ]
 }

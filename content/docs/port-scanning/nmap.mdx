@@ -10,9 +10,10 @@ versions), and the operating system in use.
 
 ## Basic scan
 
-```bash
-nmap -sV -sC -A -oA <filename> <ip_address>
-```
+<CommandInput
+  vars={{ filename: "scan", ip_address: "10.10.10.10" }}
+  command={`nmap -sV -sC -A -oA {{filename}} {{ip_address}}`}
+/>
 
 <Callout type="info">
   The original snippet used `-o <filename>`, which isn't a valid Nmap flag on

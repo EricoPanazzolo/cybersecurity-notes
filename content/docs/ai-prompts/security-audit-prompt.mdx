@@ -1,0 +1,74 @@
+---
+title: Security Audit Prompt for Vibe-Coded Apps
+description: An AI prompt technique for auditing AI-generated ("vibe coded") SaaS codebases for common security flaws.
+---
+
+<Callout type="info">
+  This page summarizes and links to an external source rather than
+  reproducing it — the original is the author's own writing, and this
+  reference only quotes short fragments for illustration. Read the original
+  for the exact, ready-to-paste prompt text.
+</Callout>
+
+A technique for using an AI coding assistant to audit its own (or another
+tool's) AI-generated codebase for a focused set of common vulnerability
+classes, then turn the findings into a polished report and ready-to-file
+GitHub issues.
+
+**Source:** ["Vibe coding: o prompt que audita seu código"](https://manodeyvin.com.br/p/vibe-coding-o-prompt-que-audita-seu)
+by Mano Deyvin (Substack, August 2026). Original in Brazilian Portuguese.
+
+## How it works
+
+The prompt instructs the assistant to first detect the project's stack
+(language, framework, ORM, auth mechanism, frontend, deployment files), then
+audit the codebase for five vulnerability categories, adapting each to the
+detected stack:
+
+1. **Missing tenant/owner isolation** — list/search/report/export queries
+   that don't filter by the authenticated user or their
+   organization/workspace/tenant (e.g. missing Row-Level Security in
+   Supabase, or a missing tenant filter in a hand-rolled API).
+2. **Client-side-only permission checks** — privileged actions (admin
+   panels, user management, settings) where the frontend hides the UI by
+   role but the backend never re-checks that role on the actual endpoint.
+3. **IDOR** — routes that fetch, modify, or delete an object by ID without
+   confirming the object belongs to the calling user/tenant, checked across
+   *every* route handler rather than a sample.
+4. **Hardcoded secrets** — API keys, tokens, passwords, and signing secrets
+   embedded in source, configs, Docker/CI files, or docs — including
+   insecure defaults (e.g. `${VAR:-fallback-secret}`) that become real
+   secrets if never overridden, and secrets leaked in git history or a
+   frontend bundle.
+5. **Unsanitized input (XSS)** — unsafe HTML injection sinks
+   (`innerHTML`, `dangerouslySetInnerHTML`, `v-html`, `eval`, unsanitized
+   markdown rendering, user-controlled `href`/`src`) on the frontend, and
+   unescaped user input reaching HTML (emails, templates, responses) on the
+   backend.
+
+## Audit rules it enforces
+
+- Report only findings verified in the actual code — no speculation — each
+  with file path, exact line number(s), the code snippet, why it's
+  exploitable, and a severity rating.
+- Also record what was checked and found **correct** (e.g. "this router
+  validates ownership in every handler"), so the strengths section
+  demonstrates real coverage rather than just listing problems.
+- Explicitly say when a category doesn't apply to the detected stack,
+  instead of forcing a finding.
+
+## Output format
+
+The prompt asks the assistant to generate a polished PDF report (cover page,
+executive summary with severity charts, a strengths/weaknesses breakdown,
+a detailed findings table) and, at the end of that same report, a
+copy-pasteable Markdown block **per actionable finding** formatted as a
+ready-to-file GitHub issue (title, labels, description, evidence,
+impact, fix suggestion, and acceptance criteria) — grouping trivial related
+findings into one issue to avoid flooding the tracker.
+
+<Callout type="warn">
+  Only run an audit like this against code you're authorized to test, and
+  treat its output as a lead to verify, not a guaranteed-accurate report —
+  like any AI-generated analysis, it can miss issues or misjudge severity.
+</Callout>

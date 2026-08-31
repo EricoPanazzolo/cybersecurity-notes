@@ -1,0 +1,40 @@
+---
+title: Gobuster (DNS Mode)
+description: Active subdomain brute-forcing via DNS resolution.
+---
+
+**Gobuster**'s `dns` mode brute-forces subdomains by trying every entry in a
+wordlist as a DNS name and checking whether it resolves. See the
+[Gobuster page](/docs/web-fuzzing/gobuster) for the tool's directory/file
+brute-force mode (`dir`), which shares the same binary and general flag
+style.
+
+## Subdomain brute-force
+
+<CommandInput
+  vars={{ domain: "domain.com" }}
+  command={`gobuster dns -d {{domain}} -w /usr/share/SecLists/Discovery/DNS/subdomains-top1million-110000.txt -o dns_list.txt`}
+/>
+
+## Flag reference
+
+| Flag | Meaning |
+| --- | --- |
+| `dns` | Mode: brute-force subdomains via DNS resolution. |
+| `-d <domain>` | Target root domain. |
+| `-w <wordlist>` | Path to the wordlist to brute-force with. |
+| `-o <file>` | Writes results to a file instead of (or in addition to) stdout. |
+
+## Other useful flags (not in the original notes)
+
+| Flag | Meaning |
+| --- | --- |
+| `-t <n>` | Number of concurrent threads (default 10). |
+| `-r <resolver>` | Custom DNS resolver to use instead of the system default. |
+| `--wildcard` | Force continued brute-forcing even if wildcard DNS is detected. |
+
+<Callout type="info">
+  DNS mode is a pure brute-force; it won't find subdomains that aren't in the
+  wordlist. Combine with tools like [Amass](/docs/subdomain-discovery/amass)
+  or [BBOT](/docs/subdomain-discovery/bbot) for broader passive coverage.
+</Callout>

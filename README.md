@@ -75,13 +75,14 @@ for a single tool's reference, so they're split into dedicated sections:
 | Category | Contents |
 | --- | --- |
 | Wordlists & Resources | SecLists, Alterx |
-| Subdomain & Attack Surface Discovery | Overview, Amass, BBOT |
+| Subdomain & Attack Surface Discovery | Overview, Amass, BBOT, Gobuster (DNS mode) |
 | Port & Service Scanning | Nmap |
-| Web Content & Directory Fuzzing | Gobuster, Dirsearch, FFUF |
+| Web Content & Directory Fuzzing | Gobuster (dir mode), Dirsearch, FFUF |
 | Cloud & Identity Enumeration | Azure AD / Entra ID enumeration, Bucket enumeration, Firebase enumeration |
 | Web Application Vulnerabilities | Nuclei, CORS (Corsy), Code injection probe, LFI |
-| Network & Certificate Intelligence | Certificates / WHOIS / IP / domain intel |
+| Network & Certificate Intelligence | Cipher Suites, Certificates, Whois, IP, Domains |
 | **Playbooks & Workflows** | Fuzzing & scanning pipeline (Chaos→HTTPX→Naabu→Nmap), Subdirectory enumeration decision guide, CORS mass hunting, HTTrack+TruffleHog, Wayback+uro archived-file discovery |
+| **AI Prompts** | Prompt techniques for using AI coding assistants in security work (e.g. auditing vibe-coded apps) |
 
 Pages whose commands substantially duplicate another page's (e.g. the
 Subdirectory Enumeration and CORS mass-hunting playbooks, which mostly
@@ -114,14 +115,29 @@ wasn't in the source material.
    caveats/warnings, and `<Cards>` / `<Card title="..." href="...">` for
    links to official docs or repos. Only link to sources you've actually
    verified — never fabricate a URL.
-5. If it's a playbook (chains multiple separate tools), put it under
+5. For a command that needs a target-specific value (a domain, target URL,
+   email, client ID, etc.), use `<CommandInput>` instead of a plain fenced
+   code block — it renders an editable field per `{{placeholder}}` in the
+   command and re-renders the highlighted command live as the reader types,
+   so they can copy a ready-to-run command instead of hand-editing it:
+   ```mdx
+   <CommandInput
+     vars={{ domain: "domain.com" }}
+     command={`gobuster dir -u https://{{domain}} -w wordlist.txt`}
+   />
+   ```
+   Placeholder names must match `\w+` (letters/digits/underscore — no
+   hyphens). Reserve it for commands meant to be copy-run as-is; skip it for
+   illustrative/non-runnable examples (e.g. a URL pattern shown to explain a
+   vulnerability) and for compact inline snippets inside a table.
+6. If it's a playbook (chains multiple separate tools), put it under
    `content/docs/playbooks/` and open with a
    `<Callout type="info" title="Playbook">` linking to each tool's page.
-6. Run `npm run build` before committing — it will fail on MDX syntax errors
+7. Run `npm run build` before committing — it will fail on MDX syntax errors
    the dev server sometimes tolerates.
 
 ## Theme
 
-Uses Fumadocs' built-in `ocean` preset (`fumadocs-ui/css/ocean.css`) — a
-dark, technical-feeling palette — imported in `app/globals.css` alongside
-Tailwind CSS v4 and the shared `fumadocs-ui/css/preset.css`.
+Uses Fumadocs' built-in `catppuccin` preset (`fumadocs-ui/css/catppuccin.css`)
+— imported in `app/globals.css` alongside Tailwind CSS v4 and the shared
+`fumadocs-ui/css/preset.css`.
