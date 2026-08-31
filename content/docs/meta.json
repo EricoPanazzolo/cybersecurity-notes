@@ -10,6 +10,8 @@
     "cloud-identity-enum",
     "web-vulnerabilities",
     "network-cert-intel",
+    "---Exploitation---",
+    "reverse-shells",
     "---Workflows---",
     "playbooks",
     "---AI---",

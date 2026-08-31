@@ -2,6 +2,8 @@ import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { CommandInput } from './command-input';
+import { PageVariables, PageCommand } from './page-variables';
+import { ReverseShellGenerator } from './reverse-shell-generator';
 import type { MDXComponents } from 'mdx/types';
 
 export function getMDXComponents(components?: MDXComponents) {
@@ -11,6 +13,9 @@ export function getMDXComponents(components?: MDXComponents) {
     Card,
     Cards,
     CommandInput,
+    PageVariables,
+    PageCommand,
+    ReverseShellGenerator,
     ...components,
   } satisfies MDXComponents;
 }

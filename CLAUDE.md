@@ -69,6 +69,7 @@ mistaken for one tool's reference:
 | Cloud & Identity Enumeration | Azure AD / Entra ID enumeration, Bucket enumeration, Firebase enumeration |
 | Web Application Vulnerabilities | Nuclei, CORS (Corsy), Code injection probe, LFI |
 | Network & Certificate Intelligence | Cipher Suites, Certificates, Whois, IP, Domains |
+| Reverse Shells & Payloads (`content/docs/reverse-shells/`) | Reverse shell one-liner generator |
 | Playbooks & Workflows (`content/docs/playbooks/`) | Fuzzing & scanning pipeline (Chaos→HTTPX→Naabu→Nmap), Subdirectory enumeration decision guide, CORS mass hunting, HTTrack+TruffleHog, Wayback+uro archived-file discovery |
 | AI Prompts (`content/docs/ai-prompts/`) | Prompt techniques for using AI coding assistants in security work |
 
@@ -102,9 +103,18 @@ command, flag, or link that wasn't in the source.
    command live via Fumadocs' `DynamicCodeBlock`. Placeholder names must
    match `\w+` (no hyphens). Don't use it for illustrative/non-runnable
    examples or compact snippets inside a table.
-6. Playbooks go under `content/docs/playbooks/` with the `<Callout
+6. If several command blocks on one page share the same placeholder, use
+   `<PageVariables vars={{ name: "default" }} />` once (pinned field +
+   Reset button) and `<PageCommand command={\`... {{name}} ...\`} />` for
+   each block below it, instead of repeating `<CommandInput>`'s own field
+   every time (`components/page-variables.tsx`). The shared value comes
+   from React Context (`PageVariablesProvider`, wrapping `<MDX>` in
+   `app/docs/[[...slug]]/page.tsx`) — not a Fumadocs feature. Keep
+   `<CommandInput>` for a one-off command or one needing its own
+   independent value.
+7. Playbooks go under `content/docs/playbooks/` with the `<Callout
    type="info" title="Playbook">` intro described above.
-7. Run `npm run build` before committing.
+8. Run `npm run build` before committing.
 
 ### Theme
 

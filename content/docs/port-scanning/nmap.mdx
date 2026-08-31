@@ -11,14 +11,12 @@ versions), and the operating system in use.
 ## Basic scan
 
 <CommandInput
-  vars={{ filename: "scan", ip_address: "10.10.10.10" }}
-  command={`nmap -sV -sC -A -oA {{filename}} {{ip_address}}`}
+  vars={{ filename: "scan", target: "10.10.10.10" }}
+  command={`nmap -sV -sC -A -oX {{filename}} {{target}}`}
 />
 
 <Callout type="info">
-  The original snippet used `-o <filename>`, which isn't a valid Nmap flag on
-  its own. The closest correct option is `-oA`, which writes output in all
-  three formats using `<filename>` as the base name — see the table below.
+  The output saves in XML format to later use the nmap2html tool.
 </Callout>
 
 ## Flag reference
@@ -28,11 +26,9 @@ versions), and the operating system in use.
 | `-sV` | **Version detection** — probes open ports to determine the service and its version. |
 | `-sC` | **Default scripts** — runs Nmap's default NSE script set (`--script=default`) for extra enumeration (banners, common misconfigurations, etc.). |
 | `-A` | **Aggressive scan** — enables OS detection, version detection, script scanning, and traceroute together. Noisy but thorough. |
-| `-oA <basename>` | Saves output in all three formats at once: normal (`.nmap`), XML (`.xml`), and grepable (`.gnmap`). |
-| `-oN <file>` | Saves output in normal, human-readable format only. |
-| `-oX <file>` | Saves output as XML only (useful for feeding into other tools, e.g. parsers). |
+| `-oX <file>` | Saves output as XML only (useful for feeding into other tools, e.g. nmap2html). |
 | `-p-` | Scans all 65,535 ports instead of the default top 1000. |
-| `<ip_address>` | Target IP, hostname, or CIDR range to scan. |
+| `<target>` | Target IP, hostname, or CIDR range to scan. |
 
 <Callout type="warn">
   `-A` sends more probes/scripts and is easier for an IDS/IPS to flag — use a

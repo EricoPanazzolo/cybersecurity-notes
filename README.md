@@ -81,6 +81,7 @@ for a single tool's reference, so they're split into dedicated sections:
 | Cloud & Identity Enumeration | Azure AD / Entra ID enumeration, Bucket enumeration, Firebase enumeration |
 | Web Application Vulnerabilities | Nuclei, CORS (Corsy), Code injection probe, LFI |
 | Network & Certificate Intelligence | Cipher Suites, Certificates, Whois, IP, Domains |
+| **Reverse Shells & Payloads** | Reverse shell one-liner generator (IP + port → every language's payload) |
 | **Playbooks & Workflows** | Fuzzing & scanning pipeline (Chaos→HTTPX→Naabu→Nmap), Subdirectory enumeration decision guide, CORS mass hunting, HTTrack+TruffleHog, Wayback+uro archived-file discovery |
 | **AI Prompts** | Prompt techniques for using AI coding assistants in security work (e.g. auditing vibe-coded apps) |
 
@@ -130,10 +131,25 @@ wasn't in the source material.
    hyphens). Reserve it for commands meant to be copy-run as-is; skip it for
    illustrative/non-runnable examples (e.g. a URL pattern shown to explain a
    vulnerability) and for compact inline snippets inside a table.
-6. If it's a playbook (chains multiple separate tools), put it under
+6. If a page has *several* command blocks that all share the same
+   placeholder (e.g. three FFUF commands that all take the same `domain`),
+   use `<PageVariables>` once near the top instead of repeating
+   `<CommandInput>`'s own field on every block, then `<PageCommand>` (no
+   `vars` needed — it reads from the page-wide value) for each block below
+   it:
+   ```mdx
+   <PageVariables vars={{ domain: "domain.com" }} />
+
+   <PageCommand command={`ffuf -u https://{{domain}}/FUZZ -w wordlist.txt`} />
+   <PageCommand command={`nmap -p- {{domain}}`} />
+   ```
+   `<PageVariables>` renders a pinned field (with a Reset button) that every
+   `<PageCommand>` on that page shares; `<CommandInput>` stays the right
+   choice for a one-off command or one that needs its own independent value.
+7. If it's a playbook (chains multiple separate tools), put it under
    `content/docs/playbooks/` and open with a
    `<Callout type="info" title="Playbook">` linking to each tool's page.
-7. Run `npm run build` before committing — it will fail on MDX syntax errors
+8. Run `npm run build` before committing — it will fail on MDX syntax errors
    the dev server sometimes tolerates.
 
 ## Theme

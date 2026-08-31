@@ -1,0 +1,32 @@
+---
+title: Reverse Shell Generator
+description: Type an IP and port once, get a copy-ready reverse shell one-liner for every common language/tool.
+full: true
+---
+
+A self-hosted equivalent of tools like [revshells.com](https://www.revshells.com/)
+and [HackTools](https://github.com/4ndr34z/Enhanced-Hack-Tools)'s reverse
+shell generator — type your listener's IP and port once below and every
+payload updates live, so it works fully offline with no third-party site
+involved.
+
+<Callout type="warn" title="Authorized testing only">
+  Only use these against systems and scopes you're authorized to test. Start
+  a listener first (e.g. `nc -lvnp <port>`) before triggering any payload
+  below.
+</Callout>
+
+<ReverseShellGenerator />
+
+## Notes
+
+- Payloads assume a Unix-like target unless noted (PowerShell targets
+  Windows). Not every payload works on every target — availability of
+  `bash`, `nc` with `-e` support, Python 2 vs 3, etc. varies by system.
+- `sh`/`bash` payloads spawn a basic shell, not a fully interactive TTY —
+  see the [Wayback + uro](/docs/playbooks/wayback-404-discovery) style
+  playbooks in this reference for chaining follow-up enumeration once you
+  have a shell.
+- The Netcat `-e` payload only works against Netcat builds compiled with
+  `-e` support (traditional/BSD variants); many modern distros ship a
+  version without it, hence the `mkfifo` alternative.

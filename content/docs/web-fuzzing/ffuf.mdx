@@ -7,10 +7,11 @@ description: Fast, flexible web fuzzer for subdomains, paths, params, and header
 request — subdomain, path, parameter, header, POST body — can be replaced
 with the `FUZZ` keyword and brute-forced against a wordlist.
 
+<PageVariables vars={{ domain: "domain.com" }} />
+
 ## Subdomain fuzzing
 
-<CommandInput
-  vars={{ domain: "domain.com" }}
+<PageCommand
   command={`ffuf -u "https://FUZZ.{{domain}}" \\
   -w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-5000.txt \\
   -mc 200,204,301,302,307,401,403 \\
@@ -21,8 +22,7 @@ with the `FUZZ` keyword and brute-forced against a wordlist.
 
 ## Directory / sub-path fuzzing
 
-<CommandInput
-  vars={{ domain: "target.com" }}
+<PageCommand
   command={`ffuf -u "https://{{domain}}/FUZZ" \\
   -w /usr/share/wordlists/SecLists/Discovery/Web-Content/DirBuster-2007_directory-list-lowercase-2.3-big.txt \\
   -mc 200,204,301,302,307,401,403 \\
@@ -33,8 +33,7 @@ with the `FUZZ` keyword and brute-forced against a wordlist.
 
 ## Content-based filtering (instead of status/length)
 
-<CommandInput
-  vars={{ domain: "target.com" }}
+<PageCommand
   command={`ffuf -u https://{{domain}}/FUZZ \\
   -w /usr/share/wordlists/dirb/big.txt \\
   -fr "was not found on this server" \\
