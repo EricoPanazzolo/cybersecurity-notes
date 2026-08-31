@@ -1,0 +1,52 @@
+---
+title: The Toolbox
+description: A recon, enumeration, and web-security-testing tool reference.
+---
+
+<Callout type="warn" title="Authorized testing only">
+  Everything documented in this reference is intended for **authorized**
+  security testing — penetration tests, bug bounty programs in scope, CTFs,
+  or your own infrastructure. Hacking tools are software programs or
+  utilities designed to assist in gaining access to computer systems or
+  networks. Use them responsibly, legally, and only within an authorized
+  scope. Running active scans, brute-force, or exploit-attempt traffic
+  against systems you do not have permission to test may be illegal.
+</Callout>
+
+Personal reference library for recon, enumeration, and web vulnerability
+testing tools. Each category below links to individual tool pages with
+descriptions, usage examples, and full flag breakdowns — plus a dedicated
+**Playbooks & Workflows** section for recipes that chain multiple tools
+together.
+
+<Cards>
+  <Card title="Wordlists & Resources" href="/docs/wordlists-resources/seclists">
+    SecLists and Alterx — the wordlist foundation used across most tools here.
+  </Card>
+  <Card title="Subdomain & Attack Surface Discovery" href="/docs/subdomain-discovery/overview">
+    Passive/active enumeration to map out everything under a target domain.
+  </Card>
+  <Card title="Port & Service Scanning" href="/docs/port-scanning/nmap">
+    Finding live hosts, open ports, and running services with Nmap.
+  </Card>
+  <Card title="Web Content & Directory Fuzzing" href="/docs/web-fuzzing/gobuster">
+    Brute-forcing hidden paths, files, and parameters on a web server.
+  </Card>
+  <Card title="Cloud & Identity Enumeration" href="/docs/cloud-identity-enum/azure-ad-enum">
+    Finding misconfigured cloud storage, backend services, and tenants.
+  </Card>
+  <Card title="Web Application Vulnerabilities" href="/docs/web-vulnerabilities/nuclei">
+    Testing for specific web app vulnerability classes.
+  </Card>
+  <Card title="Network & Certificate Intelligence" href="/docs/network-cert-intel/certs-whois-ip-domains">
+    Certificate, WHOIS, IP, and domain intelligence lookups.
+  </Card>
+  <Card title="Playbooks & Workflows" href="/docs/playbooks/fuzzing-scanning-pipeline">
+    Recipes that chain multiple separate CLI tools into one pipeline.
+  </Card>
+</Cards>
+
+## Mind map
+
+[Ignitetechnologies/Mindmap](https://github.com/Ignitetechnologies/Mindmap) —
+visual reference for hacking tool categories.

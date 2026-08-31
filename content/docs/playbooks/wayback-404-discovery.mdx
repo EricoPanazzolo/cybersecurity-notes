@@ -1,0 +1,64 @@
+---
+title: "Archived/404 File Discovery: Wayback + uro"
+description: Finding old/forgotten files via the Wayback Machine's CDX API.
+---
+
+<Callout type="info" title="Playbook">
+  This recipe chains the Wayback Machine's public CDX API with
+  [uro](https://github.com/s0md3v/uro) (a URL cleanup tool) and standard
+  Unix filtering (`grep`) into one pipeline for finding forgotten files.
+</Callout>
+
+Technique for finding old/forgotten files on a server that may no longer be
+linked anywhere, but were once crawled and archived by the Wayback Machine —
+a common source of information disclosure (leaked configs, backups,
+credentials, etc.).
+
+## Step 1 — Pull every archived URL under the domain
+
+```
+https://web.archive.org/cdx/search/cdx?url=*.domain.com/*&collapse=urlkey&output=text&fl=original
+```
+
+Or via curl:
+
+```bash
+curl -G "https://web.archive.org/cdx/search/cdx" \
+  --data-urlencode "url=*.domain.com/*" \
+  --data-urlencode "collapse=urlkey" \
+  --data-urlencode "output=text" \
+  --data-urlencode "fl=original" > web-archive.txt
+```
+
+<Callout type="info">
+  The original curl command had a typo — `collpase` instead of `collapse` —
+  fixed above.
+</Callout>
+
+| Parameter | Meaning |
+| --- | --- |
+| `url=*.domain.com/*` | Wildcard match — any archived URL under any subdomain of `domain.com`. |
+| `collapse=urlkey` | Deduplicates results that only differ by minor URL variations. |
+| `output=text` | Plain text output instead of JSON. |
+| `fl=original` | Only return the original URL field (not timestamps, status codes, etc.). |
+
+## Step 2 — Filter to interesting file types
+
+```bash
+cat web-archive.txt | uro | grep -E '\.xls|\.xml|\.xlsx|\.json|\.pdf|\.sql|\.doc|\.docx|\.pptx|\.txt|\.zip|\.tar\.gz|\.tgz|\.bak|\.7z|\.rar|\.log|\.cache|\.secret|\.db|\.backup|\.yml|\.gz|\.config|\.csv|\.yaml|\.md|\.md5|\.exe|\.dll|\.bin|\.ini|\.bat|\.sh|\.tar|\.deb|\.rpm|\.iso|\.img|\.apk|\.msi|\.dmg|\.tmp|\.crt|\.pem|\.key|\.pub|\.asc'
+```
+
+| Part | Meaning |
+| --- | --- |
+| `uro` | [URL cleanup tool](https://github.com/s0md3v/uro) — dedupes and filters noisy/near-duplicate URLs (e.g. same path with different query params). |
+| `grep -E '...'` | Regex filters the list down to file extensions likely to contain sensitive data: backups (`.bak`, `.tar.gz`), credentials/secrets (`.key`, `.pem`, `.secret`), databases (`.sql`, `.db`), documents, and archives. |
+
+## What to do with results
+
+1. Manually visit surviving URLs to check if the file is still live on the
+   current server (not just archived).
+2. Cross-reference file names against known backup/config naming
+   conventions (`.env.bak`, `db_backup.sql`, `config.yml.old`, etc.).
+3. Treat any hits as sensitive until confirmed otherwise — don't
+   download/exfiltrate beyond what's needed to confirm the finding, and stay
+   within your authorized scope.

@@ -1,0 +1,41 @@
+---
+title: Code Injection
+description: Probing whether user input is reflected/executed unsanitized.
+---
+
+Quick reference for probing whether user input is reflected/executed
+unsanitized in a page — the first step before committing to a full XSS or
+injection test.
+
+## Basic probe payload
+
+```html
+'"><img src=x>inputed
+```
+
+This mixes several "breakout" characters (single quote, double quote, angle
+bracket) plus a broken image tag in one string, so you can see from the
+response which character(s) actually break out of the current context
+(attribute, tag, or JS string) — the word `inputed` at the end acts as a
+marker to grep for in the response.
+
+## What to check
+
+<Callout type="info">
+  Check where the text is stored/reflected in the application.
+</Callout>
+
+| Context | What it means if your payload lands there |
+| --- | --- |
+| Inside an HTML attribute (e.g. `value="...inputed..."`) | The quote character may have broken out of the attribute — check if the angle bracket closed the tag. |
+| Inside the page body as raw HTML | The broken image tag may render/break, indicating HTML injection (a step toward XSS). |
+| Inside a script block or JS string | Different breakout characters are needed for that context. |
+| Reflected only in an HTML comment or fully encoded | Likely not exploitable as-is — encoding is doing its job. |
+
+## Next steps once you find a breakout point
+
+1. Confirm exact context (view source, not rendered page).
+2. Craft a payload specific to that context (attribute vs. tag vs. JS string
+   vs. URL).
+3. Check for output encoding/CSP that might block execution even if
+   reflection is confirmed.

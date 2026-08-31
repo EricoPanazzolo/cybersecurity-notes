@@ -1,0 +1,40 @@
+---
+title: Bucket Enumeration
+description: Finding misconfigured/publicly-exposed cloud storage buckets.
+---
+
+Finding misconfigured/publicly-exposed cloud storage buckets (AWS S3, Azure
+Blob, GCP Storage) that may leak sensitive files.
+
+## [Cloud_enum](https://github.com/initstring/cloud_enum)
+
+A multi-cloud (AWS S3, Azure Blob, GCP Storage) name-permutation scanner.
+Good starting point since it also brute-forces common naming variations of a
+keyword (e.g. `target-name-backup`, `target-name-dev`, `target-name-prod`).
+
+```bash
+cloud_enum -k target-name -k target-com
+```
+
+## Flag reference
+
+| Flag | Meaning |
+| --- | --- |
+| `-k <keyword>` | A keyword to generate bucket-name permutations from. Can be passed multiple times (e.g. company name, domain without TLD, product name) to widen coverage. |
+
+## Other useful flags (not in the original notes)
+
+| Flag | Meaning |
+| --- | --- |
+| `-kf <file>` | Read keywords from a file instead of passing them individually. |
+| `-l <file>` | Custom mutations wordlist (suffixes/prefixes to combine with keywords). |
+| `-t <n>` | Number of threads. |
+| `--disable-aws` / `--disable-azure` / `--disable-gcp` | Skip a specific cloud provider if out of scope. |
+
+<Callout type="warn">
+  Found buckets should be checked for public read/write/list permissions
+  (via the provider's CLI, e.g. `aws s3 ls s3://bucket-name --no-sign-request`)
+  rather than assumed vulnerable just for existing. Stick to buckets/keywords
+  relevant to your authorized scope — permutation scanning can easily
+  surface unrelated organizations' assets.
+</Callout>

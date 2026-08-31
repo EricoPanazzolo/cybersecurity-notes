@@ -1,0 +1,67 @@
+---
+title: FFUF
+description: Fast, flexible web fuzzer for subdomains, paths, params, and headers.
+---
+
+**FFUF** (Fuzz Faster U Fool) is a fast, flexible web fuzzer. Any part of a
+request — subdomain, path, parameter, header, POST body — can be replaced
+with the `FUZZ` keyword and brute-forced against a wordlist.
+
+## Subdomain fuzzing
+
+```bash
+ffuf -u "https://FUZZ.domain.com" \
+  -w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-5000.txt \
+  -mc 200,204,301,302,307,401,403 \
+  -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0" \
+  -t 60 --rate 100 | \
+  awk '{print $1".domain.com"}' > domain.txt
+```
+
+## Directory / sub-path fuzzing
+
+```bash
+ffuf -u "https://target.com/FUZZ" \
+  -w /usr/share/wordlists/SecLists/Discovery/Web-Content/DirBuster-2007_directory-list-lowercase-2.3-big.txt \
+  -mc 200,204,301,302,307,401,403 \
+  -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0" \
+  -t 60 --rate 100 | \
+  awk '{print "https://target.com/"$1}' > domain.txt
+```
+
+## Content-based filtering (instead of status/length)
+
+```bash
+ffuf -u https://target.com/FUZZ \
+  -w /usr/share/wordlists/dirb/big.txt \
+  -fr "was not found on this server" \
+  -o ffuf_result.json -of json
+```
+
+`"was not found on this server"` here is the literal string pulled from the
+target's fake-404 page. `-fr` filters out any response whose *body* matches
+that string, regardless of its status code or length — this is more
+reliable than filtering by response length/size, since a fake-404 page will
+often return `200 OK` with a fixed, predictable body.
+
+## Flag reference
+
+| Flag | Meaning |
+| --- | --- |
+| `-u <url>` | Target URL; `FUZZ` marks the injection point. |
+| `-w <wordlist>` | Wordlist to fuzz with. |
+| `-mc <codes>` | Match responses with these status codes only. |
+| `-fr <regex>` | Filter out responses whose **body** matches this regex (content-based filtering). |
+| `-fs <size>` | Filter out responses of this exact size (size-based filtering — less reliable than `-fr` against custom 404 pages). |
+| `-H "<header>"` | Add a custom header — here, spoofing a normal browser User-Agent to reduce the chance of being blocked/fingerprinted. |
+| `-t <n>` | Number of concurrent threads. |
+| `--rate <n>` | Max requests per second (rate limiting to avoid tripping WAFs/lockouts). |
+| `-o <file>` / `-of <format>` | Output file and format (`json`, `csv`, `html`, etc.). |
+
+<Callout type="warn">
+  Always check the target's actual 404 behavior first — many apps return
+  `200 OK` with a custom "not found" page instead of a real HTTP 404, which
+  breaks naive status-code filtering. Spoofing a common browser User-Agent
+  (as in the examples) can help avoid basic bot-blocking, but isn't a
+  substitute for staying within rate limits.
+</Callout>

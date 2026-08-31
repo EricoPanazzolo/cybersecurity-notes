@@ -1,0 +1,43 @@
+---
+title: Nmap
+description: Network discovery and security auditing.
+---
+
+**Nmap** (Network Mapper) is a free, open-source tool for network discovery
+and security auditing. It sends crafted packets to hosts and analyzes the
+responses to identify live hosts, open ports, running services (with
+versions), and the operating system in use.
+
+## Basic scan
+
+```bash
+nmap -sV -sC -A -oA <filename> <ip_address>
+```
+
+<Callout type="info">
+  The original snippet used `-o <filename>`, which isn't a valid Nmap flag on
+  its own. The closest correct option is `-oA`, which writes output in all
+  three formats using `<filename>` as the base name — see the table below.
+</Callout>
+
+## Flag reference
+
+| Flag | Meaning |
+| --- | --- |
+| `-sV` | **Version detection** — probes open ports to determine the service and its version. |
+| `-sC` | **Default scripts** — runs Nmap's default NSE script set (`--script=default`) for extra enumeration (banners, common misconfigurations, etc.). |
+| `-A` | **Aggressive scan** — enables OS detection, version detection, script scanning, and traceroute together. Noisy but thorough. |
+| `-oA <basename>` | Saves output in all three formats at once: normal (`.nmap`), XML (`.xml`), and grepable (`.gnmap`). |
+| `-oN <file>` | Saves output in normal, human-readable format only. |
+| `-oX <file>` | Saves output as XML only (useful for feeding into other tools, e.g. parsers). |
+| `-p-` | Scans all 65,535 ports instead of the default top 1000. |
+| `<ip_address>` | Target IP, hostname, or CIDR range to scan. |
+
+<Callout type="warn">
+  `-A` sends more probes/scripts and is easier for an IDS/IPS to flag — use a
+  lighter scan first if stealth matters. Pair with `-p-` when you need full
+  port coverage, not just the common ones.
+</Callout>
+
+See the [Fuzzing & Scanning Pipeline](/docs/playbooks/fuzzing-scanning-pipeline)
+playbook for how Nmap fits into a larger recon chain.

@@ -1,0 +1,45 @@
+---
+title: Subdomain Enumeration Overview
+description: Passive vs. active approaches, and which tool to reach for.
+---
+
+**Subdomain enumeration** is the process of discovering subdomains belonging
+to a target domain, expanding the attack surface beyond the main site.
+
+<Callout type="info" title="Decision guide">
+  This page doesn't introduce new flags — it summarizes the two main
+  approaches and points at the tool-specific pages already in this
+  reference. See [Amass](/docs/subdomain-discovery/amass) and
+  [BBOT](/docs/subdomain-discovery/bbot) for the canonical commands.
+</Callout>
+
+## Two main approaches
+
+| Method | How it works | Pros | Cons |
+| --- | --- | --- | --- |
+| **Passive** | Query external data sources (certificate transparency logs, DNS aggregators, search engines) without touching the target directly. | Stealthy, fast, no rate limits on target. | Only finds subdomains that have been publicly indexed somewhere. |
+| **Active (brute-force)** | Try every word in a wordlist as a subdomain and check if it resolves. | Finds subdomains not indexed anywhere else. | Noisy, slower, limited to what's in the wordlist. |
+
+## Tools already documented in this reference
+
+- **[Amass](/docs/subdomain-discovery/amass)** — passive enumeration via public sources.
+- **[Gobuster](/docs/web-fuzzing/gobuster) (`dns` mode)** — active brute-force via wordlist.
+- **[BBOT](/docs/subdomain-discovery/bbot)** — automated pipeline combining both passive sources and active brute-force (`cloud-enum` preset).
+- **[FFUF](/docs/web-fuzzing/ffuf) (subdomain fuzzing)** — active brute-force via `Host` header/vhost `FUZZ`.
+
+<Callout type="info">
+  The original Notion page also referenced a "SCRIPT page" covering
+  `Subfinder`, another popular passive tool — that page wasn't part of the
+  fetched source content, so it isn't reproduced here rather than
+  fabricating one.
+</Callout>
+
+## Quick passive check (no tool required)
+
+```bash
+curl -s "https://crt.sh/?q=%25.domain.com&output=json" | jq -r '.[].name_value' | sort -u
+```
+
+Queries certificate transparency logs ([crt.sh](https://crt.sh)) for any
+certificate ever issued containing `*.domain.com`, and prints the unique
+hostnames found.

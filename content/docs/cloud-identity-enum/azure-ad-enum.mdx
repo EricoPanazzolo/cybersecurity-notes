@@ -1,0 +1,259 @@
+---
+title: Azure AD / Entra ID Tenant Enumeration
+description: Unauthenticated tenant, federation, and username recon against Microsoft's login infrastructure.
+---
+
+Reconnaissance technique for identifying and enumerating a target's
+Microsoft Azure AD / Microsoft Entra ID tenant using unauthenticated,
+read-only calls to Microsoft's own login infrastructure — no credentials or
+passwords sent, only metadata that Microsoft's hosted sign-in page itself
+requests in the background.
+
+## What you learn
+
+Running the sequence below against a target domain (`<target-domain>`) can
+confirm:
+
+- Whether the domain is bound to a real Microsoft 365 / Entra ID tenant, and
+  its **Tenant ID** (GUID).
+- Whether auth is **Managed** (cloud-only) or **Federated** (on-prem/third-party
+  IdP) — and if Federated, the real corporate SSO endpoint.
+- Whether a specific username/email exists as an account.
+- The tenant's OAuth2/OIDC endpoints (authorization, token, JWKS, etc.).
+
+<Callout type="warn" title="Risk">
+  Reconnaissance gold for an attacker — enables tenant-specific attacks such
+  as password spraying against `login.microsoftonline.com`, OAuth/consent
+  phishing, and username enumeration. Not a vulnerability by itself, but a
+  direct pivot point for identity-based attacks.
+</Callout>
+
+**Application location:** `login.microsoftonline.com` / `login.windows.net`
+(Microsoft's shared identity endpoints, queried with the target domain as a
+parameter) — not an asset hosted by the target org itself.
+
+## Test sequence
+
+All four commands are unauthenticated and require no password to run — the
+first three are pure read-only metadata lookups; the fourth (device code)
+actively starts an auth flow but still requires no credentials or app
+registration of your own. Together they answer: *is this domain a real
+tenant, how does it authenticate, does a given username exist, what are its
+OAuth endpoints, and which client apps can authenticate against it?*
+
+Replace `<target-domain>` with the domain being tested, and `<email>` with a
+specific email address on that domain.
+
+### 1. Realm discovery — confirm the tenant exists and how it authenticates
+
+**Why run it:** it's the first, lowest-noise check — confirms the domain is
+bound to a real Microsoft tenant and reveals whether authentication happens
+directly at Microsoft (cloud-only) or gets redirected to an on-prem/third-party
+identity provider, without sending a password or risking a lockout. It's the
+same check tools like MSOLSpray, o365creeper, and AADInternals'
+`Get-AADIntLoginInformation` automate as their first step.
+
+```bash
+curl -s "https://login.microsoftonline.com/getuserrealm.srf?login=<email>&xml=1"
+```
+
+**What it does:** queries the legacy "user realm" endpoint that Microsoft's
+login page calls right after a user types their email, to decide which auth
+screen to show next.
+
+**Expected result:** an XML document. The field that matters is
+`NameSpaceType`:
+
+| Value | Meaning |
+| --- | --- |
+| `Managed` | Cloud-only Azure AD tenant — auth happens directly at Microsoft. |
+| `Federated` | The domain uses an on-prem IdP (ADFS, Okta, PingFederate, etc.) — the response also leaks the federation login URL, i.e. the real corporate SSO endpoint. |
+| `Unknown` | The domain isn't registered with Microsoft/Azure AD at all. |
+
+Other fields sometimes present: `FederationBrandName`/`DomainName` (tenant
+display name/branding), `CloudInstanceName` (which Microsoft cloud —
+commercial, Gov, China — the tenant sits in).
+
+<Callout type="info">
+  This does **not** confirm whether the specific email exists as an account
+  — that's step 2.
+</Callout>
+
+**Microsoft reference:** this endpoint is not part of Microsoft's official
+public API surface (no Learn documentation page); it's an internal endpoint
+the hosted sign-in page relies on, reverse-engineered and documented by the
+security community. The closest official concept is
+[Home Realm Discovery](https://learn.microsoft.com/en-us/entra/identity-platform/home-realm-discovery-policy),
+which governs the Managed-vs-Federated routing decision this endpoint
+exposes.
+
+### 2. `GetCredentialType` — enumerate whether a given username exists
+
+**Why run it:** because it distinguishes "valid account" from "invalid
+account" pre-authentication, an attacker can feed it a list of guessed
+emails (e.g. `firstname.lastname@<target-domain>` scraped from LinkedIn) and
+build a confirmed valid-username list to seed a password-spray attack. This
+is the technique o365creeper, MSOLSpray, and AADInternals'
+`Invoke-AADIntUserEnumerationAsOutsider` automate.
+
+```bash
+curl -s -X POST "https://login.microsoftonline.com/common/GetCredentialType" \
+  -H "Content-Type: application/json" \
+  -d '{"Username":"<email>"}' | jq '.IfExistsResult, .ThrottleStatus'
+```
+
+**What it does:**
+
+| Part | Meaning |
+| --- | --- |
+| `-X POST` | The endpoint only accepts POST. |
+| URL | An unauthenticated public API that `login.microsoftonline.com` calls internally right after the email step, to decide whether to show a password field, an SSO redirect, or "no account found." |
+| `-H "Content-Type: application/json"` | The API expects a JSON body. |
+| `-d '{"Username":"..."}'` | The minimum required payload; a real browser also sends `originalRequest`/`isOtherIdpSupported`, but Microsoft's endpoint tolerates a bare `Username`. |
+
+**Expected result:** JSON such as:
+
+```json
+{
+  "Username": "<email>",
+  "IfExistsResult": 0,
+  "IsUnmanaged": false,
+  "ThrottleStatus": 0,
+  "Credentials": { "PrefCredential": 1 }
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `IfExistsResult` | The field that matters: `0` → account exists; `1` → account does not exist; `5`/`6` → account exists but in another state (e.g. requires a different flow); other values map to less common cases (e.g. blocked tenant). |
+| `ThrottleStatus` | Non-zero means Microsoft has started rate-limiting the source IP; hammering this endpoint with many usernames flips it on and results become unreliable. |
+| `IsUnmanaged` | Whether the domain has been claimed/verified in Azure AD at all. |
+
+**Caveats:**
+
+- Microsoft has partially mitigated this over time with a "Username
+  Enumeration Protection" control — some tenants now return
+  `IfExistsResult: 0` for both valid and invalid users, so the
+  positive/negative signal isn't guaranteed on every tenant.
+- Querying at volume trips throttling and may get the source IP
+  flagged/blocked. Treat this as a single verification lookup, not a bulk
+  enumeration run.
+
+**Microsoft reference:** also an undocumented internal endpoint (no official
+Learn page). Microsoft's supported, documented alternative for checking
+sign-in behavior/tenant setup is the
+[Microsoft Entra ID authentication methods & sign-in logs documentation](https://learn.microsoft.com/en-us/entra/identity/authentication/concept-authentication-methods)
+— the raw `GetCredentialType` API itself is only described in third-party
+security research (e.g. write-ups from the tools named above).
+
+### 3. OIDC discovery document — confirm tenant ID and OAuth endpoints
+
+**Why run it:** it's frequently the *first legitimate step* when wiring up
+OIDC/SSO for an app, and doubles as a clean OSINT/recon step — no
+authentication required, and the response both confirms the domain is a
+registered Microsoft 365/Entra ID tenant and reveals its tenant GUID plus
+supported auth flows.
+
+```bash
+curl -s "https://login.microsoftonline.com/<target-domain>/.well-known/openid-configuration" \
+| jq '.issuer, .authorization_endpoint'
+```
+
+**What it does:** hits Microsoft's standard OIDC discovery endpoint. The
+domain segment in the URL is the tenant identifier — Entra ID lets you
+address a tenant by its verified domain name instead of its GUID.
+
+**Expected result:** a JSON document describing the tenant's OAuth2/OIDC
+configuration, including:
+
+| Field | Meaning |
+| --- | --- |
+| `issuer` | The token issuer URI (contains the tenant's GUID). |
+| `authorization_endpoint` | Where users are sent to log in. |
+| `token_endpoint` | Where apps exchange codes for tokens. |
+| `jwks_uri` | The tenant's signing keys, for validating issued tokens. |
+| `userinfo_endpoint`, `end_session_endpoint` | Plus supported scopes and response types. |
+
+**Microsoft reference:** this one *is* officially documented — see
+[Microsoft identity platform and OpenID Connect protocol](https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols-oidc),
+specifically the
+["Find your app's OpenID Connect configuration document URI"](https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols-oidc#find-your-apps-openid-configuration-document-uri)
+section.
+
+### 4. Device code flow — probe which client apps/scopes the tenant accepts
+
+**Why run it:** unlike commands 1–3 (pure metadata lookups), this one
+actually starts an OAuth2 device-code flow against the tenant. It's useful
+for confirming a given client ID is allowed to authenticate against the
+tenant at all, and for checking whether the tenant restricts sign-in to
+specific first-party apps. It requires no client secret and no
+pre-registered app of your own — it's the same flow AADInternals and various
+device-code-phishing proof-of-concepts use to probe or interact with a
+tenant using Microsoft's own pre-consented first-party client IDs.
+
+```bash
+curl -s -X POST "https://login.microsoftonline.com/<target-domain>/oauth2/v2.0/devicecode" \
+  -d "client_id=<client-id>" \
+  -d "scope=https://graph.microsoft.com/.default offline_access"
+```
+
+**What it does:**
+
+| Part | Meaning |
+| --- | --- |
+| `-X POST` | The endpoint only accepts POST. |
+| `<target-domain>` in the URL | Tenant identifier — same pattern as the OIDC discovery endpoint in step 3. |
+| `client_id=<client-id>` | The Azure AD application requesting access — see the well-known client IDs below if you don't have your own registered app. |
+| `scope=https://graph.microsoft.com/.default offline_access` | Requests default Microsoft Graph permissions plus a refresh token (`offline_access`), so the resulting token doesn't expire in an hour. |
+
+**Expected result:** on success, a JSON response containing a `device_code`,
+`user_code`, and `verification_uri` — the user_code is what a victim would
+enter at `https://microsoft.com/devicelogin` to complete sign-in. An error
+response (e.g. `unauthorized_client` or `AADSTS...`) instead tells you the
+client ID isn't permitted for this tenant, which is itself useful recon.
+
+**Well-known public Microsoft first-party client IDs**
+
+These are pre-consented and don't require app registration, so they're
+commonly used for this kind of tenant probing:
+
+| Client ID | App |
+| --- | --- |
+| `04b07795-8ddb-461a-bbee-02f9e1bff005` | Azure CLI |
+| `1b730954-1685-4b74-9bfd-dac224a7b894` | Azure AD PowerShell |
+| `d3590ed6-52b3-4102-aeff-aad2292ab01c` | Microsoft Office |
+| `1950a258-227b-4e31-a9cf-717495945fc2` | Microsoft Azure PowerShell |
+
+**Caveats:**
+
+- This is a heavier-weight, more active step than commands 1–3 — it
+  actually initiates an auth flow against the tenant, which can be
+  logged/alerted on in Entra ID sign-in logs, unlike the passive metadata
+  lookups above.
+- The device-code flow is also the basis of a known phishing technique
+  (sending a victim a legitimate Microsoft `user_code`/URL to complete
+  sign-in on your behalf) — only use this against tenants you're authorized
+  to test, and be aware this step crosses from passive recon into active
+  interaction with the identity provider.
+
+**Microsoft reference:** officially documented — see
+[Microsoft identity platform and the OAuth 2.0 device authorization grant flow](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-device-code).
+
+## Notes
+
+<Callout type="warn">
+  - Commands 1–3 are passive/read-only against Microsoft's own
+    infrastructure, not the target org's servers — but the *findings* (valid
+    usernames, federation endpoints, tenant ID) are directly actionable
+    against the target org, so treat results as sensitive.
+  - Command 4 is qualitatively different: it initiates a real auth flow and
+    can appear in the tenant's own Entra ID sign-in logs — treat it as
+    active testing, not passive OSINT.
+  - Command 2 is the only purely passive step with meaningful abuse
+    potential (username enumeration) and is subject to throttling — use
+    sparingly and only within authorized scope.
+  - Suggested order: run Command 1 first (cheap, tells you Managed vs
+    Federated), then Command 3 (confirms tenant + endpoints), Command 2
+    per-username as needed rather than in bulk, and only run Command 4 last,
+    deliberately, since it's the one active step in the sequence.
+</Callout>

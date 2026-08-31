@@ -1,0 +1,46 @@
+---
+title: Dirsearch
+description: Python-based web path scanner with built-in recursion and filtering.
+---
+
+**Dirsearch** is a Python-based web path scanner (similar to
+Gobuster/FFUF) built specifically for finding hidden directories and files
+on a web server, with built-in recursion and response filtering.
+
+## Usage template
+
+```bash
+dirsearch -u <URL> -t <THREAD_NUMBER> -x <STATUS_CODE_FILTER> -r
+```
+
+## Example (from original notes)
+
+```bash
+dirsearch -u <URL> -t 120 -x 400,404,403 -r -w /usr/share/wordlists/SecLists/Discovery/Web-Content/directory-list-2.3-big.txt
+```
+
+## Flag reference
+
+| Flag | Meaning |
+| --- | --- |
+| `-u <URL>` | Target URL to scan. |
+| `-t <n>` | Number of concurrent threads (120 above is aggressive — good for fast connections/local labs, riskier against production targets). |
+| `-x <codes>` | Exclude responses with these status codes (e.g. `400,403,404`) so they don't clutter results. |
+| `-r` | Enable recursive scanning — automatically re-scans any discovered directory. |
+| `-w <wordlist>` | Path to the wordlist to use. |
+
+## Other useful flags (not in the original notes)
+
+| Flag | Meaning |
+| --- | --- |
+| `-e <ext,ext>` | File extensions to test (e.g. `-e php,bak,zip`). |
+| `-i <codes>` | Only include responses with these status codes. |
+| `--random-agent` | Rotate User-Agent per request to reduce fingerprinting. |
+| `-o <file>` | Save output to a file. |
+
+<Callout type="warn">
+  High thread counts (`-t 120`) can trip rate limiting/WAFs — dial it back on
+  production or bug-bounty targets. `-r` combined with a large wordlist can
+  get slow; consider scoping recursion depth if the tool/version supports
+  it.
+</Callout>

@@ -1,0 +1,49 @@
+---
+title: Gobuster
+description: Go-based brute-forcing tool for directories, subdomains, DNS, and vhosts.
+---
+
+**Gobuster** is a Go-based brute-forcing tool used to discover hidden
+directories/files on web servers, valid subdomains, DNS records, virtual
+hosts, and more — by trying every entry in a wordlist against the target.
+
+## Directory / file brute-force
+
+```bash
+gobuster dir -u <website> -w /usr/share/SecLists/Discovery/Web-Content/directory-list-2.3-medium.txt -o dir_list.txt
+```
+
+## Subdomain brute-force (DNS mode)
+
+```bash
+gobuster dns -d <website> -w /usr/share/SecLists/Discovery/DNS/subdomains-top1million-110000.txt -o dns_list.txt
+```
+
+## Flag reference
+
+| Flag | Meaning |
+| --- | --- |
+| `dir` | Mode: brute-force directories/files on a web server. |
+| `dns` | Mode: brute-force subdomains via DNS resolution. |
+| `-u <website>` | Target base URL (used in `dir` mode). |
+| `-d <website>` | Target root domain (used in `dns` mode). |
+| `-w <wordlist>` | Path to the wordlist to brute-force with. |
+| `-o <file>` | Writes results to a file instead of (or in addition to) stdout. |
+
+## Other useful flags (not in the original notes)
+
+| Flag | Meaning |
+| --- | --- |
+| `-x <ext,ext>` | Append file extensions to try (e.g. `-x php,txt,bak`). |
+| `-t <n>` | Number of concurrent threads (default 10). |
+| `-k` | Skip TLS certificate verification (useful for self-signed certs). |
+| `-r` | Follow redirects (`dir` mode). |
+| `-s <codes>` | Only show responses with these status codes. |
+
+<Callout type="info">
+  SecLists ships common wordlists for both modes — `Discovery/Web-Content/`
+  for directories, `Discovery/DNS/` for subdomains. DNS mode is a pure
+  brute-force; it won't find subdomains that aren't in the wordlist. Combine
+  with tools like [Amass](/docs/subdomain-discovery/amass) or
+  [BBOT](/docs/subdomain-discovery/bbot) for broader passive coverage.
+</Callout>

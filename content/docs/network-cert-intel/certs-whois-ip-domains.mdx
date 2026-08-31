@@ -1,0 +1,71 @@
+---
+title: Cipher Suites / Certificates / Whois / IP / Domains
+description: TLS/certificate inspection, WHOIS/domain lookups, and host/IP intelligence.
+---
+
+Reference links for TLS/certificate inspection, WHOIS/domain lookups, and
+general host/IP intelligence — mostly browser-based tools, no CLI flags
+involved.
+
+## Tools
+
+### [Censys Search](https://search.censys.io/)
+
+A search engine that indexes internet-facing hosts and their exposed
+services/certificates. Useful for finding all hosts using a specific
+certificate, open service, or banner across the entire internet — good for
+asset discovery and finding shadow IT.
+
+#### Query: find the real origin IP behind Cloudflare
+
+```
+((<target-domain>) and not (host.services.software.vendor = "cloudflare" or web.software.vendor = "cloudflare")) and host.ip: *
+```
+
+**What it does:**
+
+- `(<target-domain>)` — matches hosts/certificates Censys associates with the
+  target domain (replace `<target-domain>` with the actual domain, e.g.
+  `example.com`).
+- `not (host.services.software.vendor = "cloudflare" or web.software.vendor = "cloudflare")`
+  — excludes any result where Censys has fingerprinted Cloudflare as the
+  service or web software, i.e. filters out hosts that are just Cloudflare's
+  edge/proxy.
+- `and host.ip: *` — requires the result to actually have a host IP indexed
+  (filters out incomplete/certificate-only records with no resolvable host).
+
+**What it's used for:** Many sites hide their real server behind Cloudflare,
+so scanning the domain directly only ever hits Cloudflare's reverse proxy,
+not the actual origin server. This query searches Censys's index for any
+host tied to the domain (via matching certificates, hostnames, etc.) that is
+**not** itself a Cloudflare-fingerprinted service — in other words, a
+candidate for the real origin IP. This matters because the origin server,
+once found, may be reachable directly (bypassing Cloudflare's
+WAF/rate-limiting/DDoS protection entirely) if it isn't properly firewalled
+to only accept traffic from Cloudflare's IP ranges.
+
+<Callout type="info">
+  A match here is a lead, not proof — always verify a candidate IP actually
+  serves the target's content (e.g. by requesting it directly with the
+  right `Host` header) before treating it as the confirmed origin.
+</Callout>
+
+### [Who.is](https://who.is/)
+
+WHOIS lookup service — returns domain registration details (registrar,
+creation/expiry date, name servers) and basic IP/DNS info for a domain or
+IP.
+
+### [SSL Server Test — Qualys SSL Labs](https://www.ssllabs.com/ssltest)
+
+Runs a full TLS/SSL configuration audit against a public server: supported
+protocol versions, cipher suites, certificate chain validity, and known
+vulnerabilities (e.g. Heartbleed, POODLE). Grades the result A–F.
+
+## Quick CLI equivalents
+
+| Task | Command |
+| --- | --- |
+| View a site's certificate details | `openssl s_client -connect domain.com:443 -servername domain.com` |
+| List supported cipher suites | `nmap --script ssl-enum-ciphers -p 443 domain.com` |
+| Quick WHOIS from terminal | `whois domain.com` |

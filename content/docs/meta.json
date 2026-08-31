@@ -1,0 +1,16 @@
+{
+  "title": "The Toolbox",
+  "pages": [
+    "index",
+    "---Reconnaissance---",
+    "wordlists-resources",
+    "subdomain-discovery",
+    "port-scanning",
+    "web-fuzzing",
+    "cloud-identity-enum",
+    "web-vulnerabilities",
+    "network-cert-intel",
+    "---Workflows---",
+    "playbooks"
+  ]
+}

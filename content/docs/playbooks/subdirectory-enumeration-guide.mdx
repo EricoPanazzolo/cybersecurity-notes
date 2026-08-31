@@ -1,0 +1,82 @@
+---
+title: Subdirectory Enumeration (Decision Guide)
+description: Choosing between Gobuster and FFUF for brute-forcing hidden directories/paths.
+---
+
+<Callout type="info" title="Playbook">
+  This page picks between two separate CLI tools —
+  [Gobuster](/docs/web-fuzzing/gobuster) and [FFUF](/docs/web-fuzzing/ffuf)
+  — for the same job (directory/path brute-forcing), plus a content-based
+  filtering trick for sites with a fake/custom 404 page. It isn't a chained
+  multi-tool pipeline like the [Fuzzing & Scanning Pipeline](/docs/playbooks/fuzzing-scanning-pipeline)
+  — it's a decision guide, grouped here because its commands duplicate the
+  dedicated Gobuster/FFUF pages rather than introducing new ones.
+</Callout>
+
+Two tools for brute-forcing hidden directories/paths on a web server, plus a
+content-based filtering trick for sites with a fake/custom 404 page.
+
+## Gobuster
+
+```bash
+gobuster dir -u https://domain.com -w /usr/share/wordlists/
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `dir` | Mode: brute-force directories/files. |
+| `-u <url>` | Target base URL. |
+| `-w <wordlist>` | Wordlist path. |
+
+See the [dedicated Gobuster page](/docs/web-fuzzing/gobuster) for the full
+flag reference, including DNS mode.
+
+## FFUF (length/status-based)
+
+```bash
+ffuf -u "https://target.com/FUZZ" \
+  -w /usr/share/wordlists/SecLists/Discovery/Web-Content/DirBuster-2007_directory-list-lowercase-2.3-big.txt \
+  -mc 200,204,301,302,307,401,403 \
+  -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0" \
+  -t 60 --rate 100 | \
+  awk '{print "https://target.com/"$1}' > domain.txt
+```
+
+## FFUF (content-based filtering — for sites with a fake 404 page)
+
+```bash
+ffuf -u https://target.com/FUZZ \
+  -w /usr/share/wordlists/dirb/big.txt \
+  -fr "was not found on this server" \
+  -o ffuf_result.json -of json
+```
+
+<Callout type="info">
+  Before using this, check what the site's fake-404 page actually says.
+</Callout>
+
+`"was not found on this server"` is the literal string pulled from the
+target's custom 404 page. `-fr` filters out any response whose **body**
+matches that string — regardless of status code or length. This is more
+reliable than filtering by response length/size, because a fake-404 page
+often returns `200 OK` with a fixed body, which breaks naive length-based
+filtering.
+
+## Flag reference
+
+| Flag | Meaning |
+| --- | --- |
+| `-u <url>` | Target URL; `FUZZ` marks the injection point. |
+| `-w <wordlist>` | Wordlist to fuzz with. |
+| `-mc <codes>` | Match responses with these status codes only. |
+| `-fr <regex>` | Filter out responses whose body matches this regex (content-based). |
+| `-H "<header>"` | Custom header — here, a spoofed browser User-Agent. |
+| `-t <n>` | Concurrent threads. |
+| `--rate <n>` | Max requests/second. |
+| `-o <file>` / `-of <format>` | Output file and format. |
+
+<Callout type="warn">
+  Always check for a custom/fake 404 page before relying on status-code or
+  length-based filters — `-fr` with the exact fake-404 body text is the most
+  reliable approach in that case.
+</Callout>

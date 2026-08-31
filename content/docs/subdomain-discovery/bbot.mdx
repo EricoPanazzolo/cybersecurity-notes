@@ -1,0 +1,62 @@
+---
+title: BBOT
+description: Recursive OSINT/attack-surface scanner built on chained presets.
+---
+
+**BBOT** (Bighuge BLS OSINT Tool) is a recursive OSINT/attack-surface
+scanner. Instead of running individual tools by hand, you enable "presets"
+(bundles of modules) and BBOT chains their outputs together automatically —
+subdomains feed into web probing, which feeds into vulnerability scanning,
+etc.
+
+## Example scan
+
+```bash
+bbot -t TARGET \
+  -p cloud-enum web-heavy spider webbrute wayback code-enum js-audit baddns nuclei lightfuzz-light \
+  -c modules.nuclei.severity=low,medium,high,critical \
+  -y \
+  -n enum_TARGET_2026 \
+  -o .
+```
+
+## Top-level flag reference
+
+| Flag | Meaning |
+| --- | --- |
+| `-t TARGET` | **Scope declaration.** Everything BBOT discovers (subdomains, IPs, URLs) is checked against this, and only in-scope assets are actively touched. |
+| `-p <presets>` | List of presets (module bundles) to enable — see table below. |
+| `-c <key>=<value>` | Config override for a specific module option, in the form `modules.<name>.<option>=<value>`. |
+| `-y` | Skip the interactive "confirm these modules will run" prompt — needed for unattended/scripted runs. |
+| `-n <name>` | Scan name — becomes the output folder name and the identifier in BBOT's scan history. |
+| `-o <dir>` | Output directory — writes `output.txt`, `.ndjson`, a subdomains file, screenshots (if enabled), etc. |
+
+## Presets used above
+
+| Preset | What it does |
+| --- | --- |
+| **cloud-enum** | The foundation. Runs the full subdomain-enum module set (crt.sh, certspotter, rapiddns, hackertarget, dnsdumpster, urlscan, plus active DNS brute-force via `dnsbrute`/`dnsbrute_mutations`) and cloud storage bucket checks (AWS, Google, Azure/Microsoft, DigitalOcean, Firebase, Hetzner, plus generic file enumeration). Sets `dns.threads=25`, `dns.brute_threads=1000`. Everything else in the scan builds on what this finds. |
+| **web-heavy** | Combines non-intrusive and advanced web recon: TLS cert parsing, `robots.txt`/`security.txt`, exposed `.git`, GraphQL introspection, OAuth endpoint discovery, `badsecrets` (known hardcoded framework secrets), NTLM info leak, bucket checks at the web layer — plus the "heavy" additions: parameter brute-forcing (cookies/GET params/headers), WAF fingerprinting and bypass attempts, virtual-host discovery, 403-bypass checks, Host-header injection checks, RetireJS (known-vulnerable JS libraries), framework-specific checks (Telerik, DotNetNuke, AjaxPro, ASP.NET bin exposure), generic SSRF and URL-manipulation checks, general parameter-based vuln hunting, and IIS shortname enumeration. |
+| **spider** | Recursive crawler — follows links 2 hops deep (`spider_distance: 2`), capped at directory depth 45. Feeds newly-discovered URLs to everything downstream (webbrute, nuclei, lightfuzz all benefit from more pages to test). Blacklists logout URLs so it doesn't invalidate active sessions. |
+| **webbrute** | Directory/content brute-force, surface-level only (no recursion), using a 1,000-line wordlist. Finds hidden paths the spider wouldn't surface on its own. |
+| **wayback** | Queries the Wayback Machine for historically-archived URLs and page snapshots — surfaces old endpoints that no longer exist in current navigation/links. |
+| **code-enum** | Hunts for exposed Git repositories (`git`, `git_clone`, `gitdump`), code search across platforms (GitHub orgs, GitHub code search, GitLab.com, self-hosted GitLab, GitHub Actions workflows), and Docker image enumeration (`docker_pull`, Docker Hub). Looks for leaked source code and internal configuration. |
+| **js-audit** | `retirejs` flags known-CVE vulnerable JS library versions. `trufflehog` (unverified findings included) scans for leaked API keys/credentials. `badsecrets` checks for hardcoded framework secrets. `robots` (with sitemap inclusion) and `wayback` (URLs + archives) widen the set of JS files actually discovered and audited. |
+| **baddns** | DNS/subdomain-takeover checks, restricted here to the CNAME, MX, and TXT submodules — catches dangling DNS records pointing at deprovisioned cloud/SaaS resources (classic subdomain takeover). |
+| **nuclei** | Runs the full [Nuclei](https://github.com/projectdiscovery/nuclei) template set manually (no auto-selection), with `directory_only: true` to keep volume sane. Sends real active probe/exploit-attempt traffic — the loudest, most invasive preset in this list. |
+| **lightfuzz-light** | Active behavioral fuzzing, restricted to the 3 safest/most common submodules: path traversal, SQL injection (GET-only, less aggressive), and one more core check — with `avoid_wafs: true` to back off on WAF-fronted targets. Complements `nuclei`: nuclei matches known signatures, lightfuzz actually tests live behavior for these vuln classes. |
+
+<Callout type="warn">
+  This particular preset combination is **noisy and active** (nuclei +
+  lightfuzz send real exploit-attempt traffic) — make sure `-t` scope is
+  airtight and you have authorization before running it. The
+  `-c modules.nuclei.severity=...` override excludes `info`/`unknown`
+  severity findings, which are mostly tech-fingerprinting noise rather than
+  actual vulnerabilities.
+</Callout>
+
+<Cards>
+  <Card title="Nuclei on GitHub" href="https://github.com/projectdiscovery/nuclei">
+    The template-driven scanner BBOT's `nuclei` preset runs.
+  </Card>
+</Cards>

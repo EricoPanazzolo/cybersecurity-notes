@@ -1,0 +1,39 @@
+---
+title: Amass
+description: In-depth subdomain enumeration and passive reconnaissance.
+---
+
+**Amass** (OWASP) performs in-depth subdomain enumeration and passive
+reconnaissance by aggregating data from certificate transparency logs, DNS
+records, web archives, and other open sources.
+
+## Enumerate subdomains, filter to valid ones
+
+```bash
+amass enum -passive -d domain.com | grep -oE '([a-zA-Z0-9_-]+\.)+domain\.com' > amass.txt
+```
+
+| Part | Meaning |
+| --- | --- |
+| `enum` | Subcommand: run subdomain enumeration. |
+| `-passive` | Only use passive data sources — no direct DNS queries or probing against the target itself (stealthier, faster, but may miss some hosts). |
+| `-d <domain>` | Target root domain. |
+| `grep -oE '(...)+domain\.com'` | Regex cleanup pass to strip out any non-hostname noise from Amass's output, keeping only lines that look like `*.domain.com`. |
+
+## Check which discovered subdomains are actually alive
+
+```bash
+cat amass.txt | httpx -silent > live.txt
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `-silent` | Suppress HTTPX's banner and print clean, pipeable output. |
+
+<Callout type="warn">
+  Passive mode won't find everything — combine with active brute-force
+  (Gobuster `dns` mode, FFUF, or BBOT's `cloud-enum` preset) for wider
+  coverage. Dropping `-passive` allows Amass to also perform active
+  techniques (DNS brute-forcing, zone transfers where possible) — noisier
+  but more thorough.
+</Callout>

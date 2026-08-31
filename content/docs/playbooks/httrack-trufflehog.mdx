@@ -1,0 +1,62 @@
+---
+title: HTTrack + TruffleHog
+description: Mirror a site, then scan the mirror for leaked secrets.
+---
+
+<Callout type="info" title="Playbook">
+  This recipe chains two separate CLI tools —
+  [HTTrack](https://www.httrack.com/) and
+  [TruffleHog](https://github.com/trufflesecurity/trufflehog) — into one
+  pipeline: mirror a site, then scan the mirrored files for secrets.
+</Callout>
+
+Two-stage technique: mirror a website locally with **HTTrack**, then scan
+the mirrored files for leaked secrets with **TruffleHog**.
+
+## Step 1 — Mirror the site ([HTTrack](https://www.httrack.com/))
+
+`httrack` is a website copier that downloads HTML, images, CSS, and JS, and
+rewrites links so the site can be browsed offline. Useful for:
+
+- Analyzing site structure.
+- Recon during authorized security testing.
+- Offline browsing.
+- Collecting endpoints referenced in static assets.
+
+```bash
+httrack https://domain.com -O httrack
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `-O <dir>` | Output directory to save the mirrored site into. |
+
+## Step 2 — Scan the mirror for secrets ([TruffleHog](https://github.com/trufflesecurity/trufflehog))
+
+TruffleHog scans files/repos for hardcoded secrets (API keys, tokens,
+credentials) using both regex detectors and live verification against the
+relevant service where possible.
+
+```bash
+trufflehog filesystem httrack --results=verified,unverified --json
+```
+
+<Callout type="info">
+  The original command used `--results=verified,unknown`; TruffleHog's
+  actual result categories are `verified` and `unverified` — corrected
+  above.
+</Callout>
+
+| Flag | Meaning |
+| --- | --- |
+| `filesystem` | Scan mode — scans a local directory/file path instead of a git repo or cloud bucket. |
+| `httrack` | Path to scan — here, the directory HTTrack mirrored into. |
+| `--results=verified,unverified` | Which categories of findings to return: **verified** = TruffleHog actively confirmed the secret is live/valid; **unverified** = a pattern matched but couldn't be confirmed (needs manual review). |
+| `--json` | Output machine-readable JSON instead of plain text. |
+
+<Callout type="warn">
+  `verified` findings are high-confidence and worth immediate attention;
+  `unverified` findings need manual triage to rule out false positives (test
+  data, expired keys, etc.). Only mirror and scan sites you're authorized to
+  test.
+</Callout>

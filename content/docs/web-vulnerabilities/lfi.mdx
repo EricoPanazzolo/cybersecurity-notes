@@ -1,0 +1,48 @@
+---
+title: LFI (Local File Inclusion)
+description: Reading arbitrary files via an unvalidated file/page/template parameter.
+---
+
+**LFI (Local File Inclusion)** is a vulnerability where an application
+includes a file path that's controllable by the user (e.g. via a `page`,
+`file`, or `template` parameter) without proper validation, letting an
+attacker read arbitrary files from the server — and sometimes escalate to
+code execution.
+
+## Reference video
+
+[https://www.youtube.com/watch?v=yuWovUgNLUE](https://www.youtube.com/watch?v=yuWovUgNLUE)
+
+## How it typically shows up
+
+```javascript
+https://target.com/index.php?page=about.php
+```
+
+If `page` is passed straight into an `include()`/`require()` call, an
+attacker may be able to swap it for another file path.
+
+## Common test payloads
+
+| Payload | Purpose |
+| --- | --- |
+| `../../../../etc/passwd` | Classic path traversal to read a well-known Linux file, confirms traversal works. |
+| `....//....//....//etc/passwd` | Bypasses naive filters that strip a single `../`. |
+| `php://filter/convert.base64-encode/resource=index.php` | PHP wrapper trick to read source code (base64-encoded) instead of executing it. |
+| `/proc/self/environ` (with log/user-agent poisoning) | Can lead to remote code execution if the environment can be poisoned with attacker-controlled PHP code. |
+| Null byte: `../../../../etc/passwd%00` | Used on older PHP (before 5.3.4) to truncate an appended extension like `.php`. |
+
+## Escalating to RCE
+
+- **Log poisoning**: inject PHP code into a log file (e.g. via `User-Agent`
+  header) that the LFI then includes and executes.
+- **PHP session file inclusion**: inject code into your own session data,
+  then include the session file.
+- **`php://input`**: send PHP code as the POST body and include `php://input`
+  as the "file".
+
+<Callout type="warn">
+  Always confirm scope/authorization before testing — LFI payloads that read
+  `/etc/passwd` or session files can be considered intrusive on production
+  systems.
+</Callout>

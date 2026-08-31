@@ -1,0 +1,10 @@
+{
+  "title": "Playbooks & Workflows",
+  "pages": [
+    "fuzzing-scanning-pipeline",
+    "subdirectory-enumeration-guide",
+    "cors-mass-hunting",
+    "httrack-trufflehog",
+    "wayback-404-discovery"
+  ]
+}

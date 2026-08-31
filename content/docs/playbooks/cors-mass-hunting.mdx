@@ -1,0 +1,48 @@
+---
+title: CORS Vulnerability Mass Hunting
+description: Testing CORS misconfigurations across many hosts at once.
+---
+
+<Callout type="info" title="Playbook">
+  This workflow feeds output from recon tools ([Amass](/docs/subdomain-discovery/amass),
+  [BBOT](/docs/subdomain-discovery/bbot), HTTPX) into
+  [Corsy](/docs/web-vulnerabilities/cors) for bulk CORS testing. See the
+  [CORS (Corsy) page](/docs/web-vulnerabilities/cors) for Corsy's full flag
+  reference — this page's manual `curl` test and Corsy usage overlap
+  significantly with that page, so it's kept short and points there for the
+  tool details.
+</Callout>
+
+Approach for testing CORS (Cross-Origin Resource Sharing) misconfigurations
+across many hosts at once, rather than one endpoint at a time.
+
+## What a CORS misconfiguration looks like
+
+The server reflects an arbitrary `Origin` header back in
+`Access-Control-Allow-Origin`, often combined with
+`Access-Control-Allow-Credentials: true` — meaning any website can make
+authenticated cross-origin requests on behalf of a logged-in victim and read
+the response.
+
+## Manual test
+
+```bash
+curl -s -H "Origin: https://evil.com" -I https://target.com/api/endpoint
+```
+
+Check the response headers:
+
+| Header | Red flag if... |
+| --- | --- |
+| `Access-Control-Allow-Origin` | Reflects back `https://evil.com` verbatim, or is set to `*` on an endpoint that requires authentication. |
+| `Access-Control-Allow-Credentials` | Set to `true` **together with** a reflected/wildcard origin above — this combination is what makes it exploitable. |
+
+## Mass-hunting at scale
+
+1. Feed a list of live hosts (from Amass/BBOT/HTTPX output) into `Corsy` —
+   see the [CORS page](/docs/web-vulnerabilities/cors) for usage.
+2. Corsy automatically sends a spoofed `Origin` header to each host and
+   flags any that reflect it back unsafely.
+3. Manually verify any flagged hosts before reporting — some reflect the
+   origin only for specific safe subdomains (a legitimate allowlist), which
+   isn't a vulnerability.

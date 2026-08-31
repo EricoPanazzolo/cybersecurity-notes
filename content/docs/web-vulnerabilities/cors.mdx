@@ -1,0 +1,48 @@
+---
+title: CORS (Corsy)
+description: Automated tool for detecting CORS misconfigurations.
+---
+
+Automated tool for detecting CORS (Cross-Origin Resource Sharing)
+misconfigurations — see the
+[CORS mass hunting](/docs/playbooks/cors-mass-hunting) playbook for the
+manual/conceptual explanation of what makes a CORS config exploitable.
+
+## [Corsy](https://github.com/s0md3v/Corsy)
+
+```bash
+python3 corsy.py -u target
+```
+
+## Flag reference
+
+| Flag | Meaning |
+| --- | --- |
+| `-u <target>` | Target URL (or `-i <file>` for a list of URLs — see below) to test for CORS misconfigurations. |
+
+## Other useful flags (not in the original notes)
+
+| Flag | Meaning |
+| --- | --- |
+| `-i <file>` | Input file with a list of target URLs, for scanning many hosts at once. |
+| `-o <file>` | Save results to a file. |
+| `-t <n>` | Number of threads for faster scanning across a list. |
+| `-d <delay>` | Delay between requests (seconds), to stay under rate limits. |
+| `--headers "<headers>"` | Send custom headers with each request (e.g. an auth cookie/token to test authenticated endpoints). |
+
+## What it reports
+
+Corsy sends requests with various crafted `Origin` headers and flags
+responses where:
+
+- `Access-Control-Allow-Origin` reflects an arbitrary/attacker-controlled
+  origin, and
+- `Access-Control-Allow-Credentials: true` is also set
+
+— the combination that allows a malicious site to make authenticated
+cross-origin requests and read the response.
+
+<Callout type="warn">
+  Always manually verify Corsy's findings — some origin reflection is
+  intentional and safe (e.g. a legitimate allowlist of known subdomains).
+</Callout>

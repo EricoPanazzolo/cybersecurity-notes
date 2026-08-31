@@ -1,0 +1,137 @@
+---
+title: Nuclei
+description: Fast, template-driven vulnerability scanner.
+---
+
+**Nuclei** (ProjectDiscovery) is a fast, template-driven vulnerability
+scanner. Instead of hardcoded checks, it runs community-maintained (or
+custom) YAML templates against targets — covering CVEs, misconfigurations,
+exposed panels, default credentials, takeovers, and more. You can scan a
+single URL or feed it thousands of hosts at once.
+
+## Install & update templates
+
+```bash
+nuclei -update-templates
+```
+
+Keeps the template library current — new CVEs get templates added
+constantly, so run this before any serious scan.
+
+## 1. Simple / quiet scan
+
+A clean run against one target with minimal noise — good for a quick sanity
+check or when you just want the findings, nothing else.
+
+```bash
+nuclei -u https://target.com -silent
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `-u <url>` | Single target URL. |
+| `-silent` | Suppresses the banner and progress output — prints only matched results. |
+
+## 2. Louder / verbose version
+
+For when you want visibility into exactly what Nuclei is doing — useful for
+debugging why a template isn't matching, or watching progress on a long
+scan.
+
+```bash
+nuclei -u https://target.com -v -stats
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `-v` | Verbose output — shows each request/template being tried, not just matches. |
+| `-stats` | Prints a live stats bar (requests/sec, templates loaded, matches found, ETA). |
+
+Add `-debug` instead of `-v` if you need full raw request/response dumps
+(very noisy, but useful when a template should be matching and isn't).
+
+## 3. "Power" version — full-strength scan
+
+Everything turned on: full template set, all protocols, higher concurrency,
+and output saved for later analysis. This is the heaviest, most thorough
+option — expect it to take a while and generate real traffic.
+
+```bash
+nuclei -u https://target.com \
+  -t ~/nuclei-templates/ \
+  -severity low,medium,high,critical \
+  -c 50 -rl 150 \
+  -j -o nuclei_full.jsonl
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `-t <dir>` | Explicitly point at the full templates directory (in case a subset is configured by default). |
+| `-severity <levels>` | Only run/report templates matching these severities. |
+| `-c 50` | Concurrency — number of templates executed in parallel per host. |
+| `-rl 150` | Rate limit — max requests per second, to avoid overwhelming the target or tripping a WAF. |
+| `-j` | Output results as JSON Lines (one JSON object per line — easy to pipe into other tools). |
+| `-o <file>` | Save output to a file. |
+
+## 4. Quick scan
+
+For a fast first pass across many hosts — trades thoroughness for speed by
+restricting to critical/high-signal templates and skipping slow checks.
+
+```bash
+nuclei -l targets.txt -t ~/nuclei-templates/cves/ -severity high,critical -rl 200 -silent -o quick_results.txt
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `-l <file>` | List of target URLs (one per line) instead of a single `-u`. |
+| `-t ~/nuclei-templates/cves/` | Restrict to the CVE template folder only — skips slower categories like fuzzing/misconfig for speed. |
+| `-severity high,critical` | Only the most actionable findings, to keep the pass fast and the noise low. |
+| `-rl 200` | Higher rate limit since this is meant to move fast across many hosts. |
+
+## 5. Vulnerabilities only — severity filter (low/medium/high/critical)
+
+Runs everything, but only reports actual vulnerability findings — excludes
+`info`/`unknown` severity results, which are mostly tech-fingerprinting
+noise rather than real issues.
+
+```bash
+nuclei -l targets.txt -severity low,medium,high,critical -o vulns_only.txt
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `-l <file>` | List of targets. |
+| `-severity low,medium,high,critical` | Excludes `info` and `unknown` severity templates — those are fingerprinting/informational, not vulnerabilities. |
+| `-o <file>` | Save output to a file. |
+
+## General flag reference
+
+| Flag | Meaning |
+| --- | --- |
+| `-u <url>` | Single target. |
+| `-l <file>` | List of targets from a file. |
+| `-t <path>` | Template(s) or template directory to use. |
+| `-tags <tags>` | Only run templates tagged with specific keywords (e.g. `-tags cve,rce`). |
+| `-severity <levels>` | Filter by severity: `info`, `low`, `medium`, `high`, `critical`. |
+| `-etags <tags>` / `-exclude-severity` | Exclude specific tags/severities. |
+| `-rl <n>` | Rate limit (requests/sec). |
+| `-c <n>` | Concurrency (parallel template executions). |
+| `-silent` | Minimal output — matches only. |
+| `-v` / `-debug` | Verbose / full debug output. |
+| `-j` | JSON Lines output. |
+| `-o <file>` | Save results to file. |
+| `-stats` | Show live scan statistics. |
+| `-update-templates` | Pull the latest template updates. |
+
+<Callout type="warn">
+  Always update templates before a scan (`-update-templates`) — new CVE
+  templates are added frequently. The **quick scan** and **severity-only**
+  presets are good defaults for bug-bounty-style recon across many hosts;
+  the **power** version is better suited to a single, in-scope target where
+  thoroughness matters more than speed. Higher concurrency/rate limits
+  (`-c`, `-rl`) can trip WAFs or rate limiting — dial them back on sensitive
+  or production targets. Stay within your authorized scope — Nuclei sends
+  real active probes, and some templates (RCE checks, auth bypass attempts)
+  are intrusive.
+</Callout>
