@@ -23,13 +23,12 @@ rewrites links so the site can be browsed offline. Useful for:
 - Offline browsing.
 - Collecting endpoints referenced in static assets.
 
-<PageVariables vars={{ target: "domain.com" }} />
-
-<PageCommand
+<CommandInput
+  vars={{ target: "domain.com" }}
   derivedVars={{
-    mirror_dir: { from: "target", template: "httrack_{value}", shared: true },
+    output: { from: "target", template: "httrack_{value}" },
   }}
-  command={`httrack https://{{target}} -O {{mirror_dir}}`}
+  command={`httrack https://{{target}} -O {{output}}`}
 />
 
 | Flag | Meaning |
@@ -42,8 +41,12 @@ TruffleHog scans files/repos for hardcoded secrets (API keys, tokens,
 credentials) using both regex detectors and live verification against the
 relevant service where possible.
 
-<PageCommand
-  command={`trufflehog filesystem {{mirror_dir}} --results=verified,unverified --json`}
+`input` defaults to the directory the previous step mirrored into — edit
+both if you change either away from the default.
+
+<CommandInput
+  vars={{ input: "httrack_domain.com" }}
+  command={`trufflehog filesystem {{input}} --results=verified,unverified --json`}
 />
 
 <Callout type="info">
@@ -55,7 +58,7 @@ relevant service where possible.
 | Flag | Meaning |
 | --- | --- |
 | `filesystem` | Scan mode — scans a local directory/file path instead of a git repo or cloud bucket. |
-| `<mirror_dir>` | Path to scan — here, the directory HTTrack mirrored into. |
+| `<input>` | Path to scan — here, the directory HTTrack mirrored into. |
 | `--results=verified,unverified` | Which categories of findings to return: **verified** = TruffleHog actively confirmed the secret is live/valid; **unverified** = a pattern matched but couldn't be confirmed (needs manual review). |
 | `--json` | Output machine-readable JSON instead of plain text. |
 

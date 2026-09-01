@@ -7,41 +7,41 @@ description: Fast, flexible web fuzzer for subdomains, paths, params, and header
 request — subdomain, path, parameter, header, POST body — can be replaced
 with the `FUZZ` keyword and brute-forced against a wordlist.
 
-<PageVariables vars={{ domain: "domain.com" }} />
-
 ## Subdomain fuzzing
 
-<PageCommand
-  derivedVars={{ filename: { from: "domain", template: "ffuf-subdomain_{value}.txt" } }}
+<CommandInput
+  vars={{ domain: "domain.com" }}
+  derivedVars={{ output: { from: "domain", template: "ffuf-subdomain_{value}.txt" } }}
   command={`ffuf -u "https://FUZZ.{{domain}}" \\
   -w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-5000.txt \\
   -mc 200,204,301,302,307,401,403 \\
   -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0" \\
   -t 60 --rate 100 | \\
-  awk '{print $1".{{domain}}"}' > {{filename}}`}
+  awk '{print $1".{{domain}}"}' > {{output}}`}
 />
 
 ## Directory / sub-path fuzzing
 
-<PageCommand
-  derivedVars={{ filename: { from: "domain", template: "ffuf-dir_{value}.txt" } }}
+<CommandInput
+  vars={{ domain: "domain.com" }}
+  derivedVars={{ output: { from: "domain", template: "ffuf-dir_{value}.txt" } }}
   command={`ffuf -u "https://{{domain}}/FUZZ" \\
   -w /usr/share/wordlists/SecLists/Discovery/Web-Content/DirBuster-2007_directory-list-lowercase-2.3-big.txt \\
   -mc 200,204,301,302,307,401,403 \\
   -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0" \\
   -t 60 --rate 100 | \\
-  awk '{print "https://{{domain}}/"$1}' > {{filename}}`}
+  awk '{print "https://{{domain}}/"$1}' > {{output}}`}
 />
 
 ## Content-based filtering (instead of status/length)
 
-<PageCommand
-  derivedVars={{ filename: { from: "domain", template: "ffuf-content_{value}.json" } }}
-  localVars={{ filter_text: "was not found on this server" }}
+<CommandInput
+  vars={{ domain: "domain.com", filter_text: "was not found on this server" }}
+  derivedVars={{ output: { from: "domain", template: "ffuf-content_{value}.json" } }}
   command={`ffuf -u https://{{domain}}/FUZZ \\
   -w /usr/share/wordlists/dirb/big.txt \\
   -fr "{{filter_text}}" \\
-  -o {{filename}} -of json`}
+  -o {{output}} -of json`}
 />
 
 `"was not found on this server"` here is the literal string pulled from the

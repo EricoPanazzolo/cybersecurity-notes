@@ -13,8 +13,8 @@ hostnames or related infrastructure not advertised anywhere else.
 
 <CommandInput
   vars={{ domain: "domain.com" }}
-  derivedVars={{ filename: { from: "domain", template: "openssl-cert_{value}.txt" } }}
-  command={`openssl s_client -connect {{domain}}:443 -servername {{domain}} > {{filename}}`}
+  derivedVars={{ output: { from: "domain", template: "openssl-cert_{value}.txt" } }}
+  command={`openssl s_client -connect {{domain}}:443 -servername {{domain}} > {{output}}`}
 />
 
 <Callout type="info">

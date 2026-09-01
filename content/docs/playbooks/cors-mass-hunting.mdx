@@ -28,8 +28,8 @@ the response.
 
 <CommandInput
   vars={{ url: "https://target.com/api/endpoint", origin: "https://evil.com" }}
-  derivedVars={{ filename: { from: "url", template: "corscheck_{value}.txt" } }}
-  command={`curl -s -H "Origin: {{origin}}" -I {{url}} > {{filename}}`}
+  derivedVars={{ output: { from: "url", template: "corscheck_{value}.txt" } }}
+  command={`curl -s -H "Origin: {{origin}}" -I {{url}} > {{output}}`}
 />
 
 Check the response headers:

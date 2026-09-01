@@ -15,15 +15,14 @@ description: Chaos → HTTPX → Naabu → Nmap — from a domain to annotated s
 A recon pipeline for going from "list of subdomains" to "annotated Nmap
 results" — each step's output feeds the next tool.
 
-<PageVariables vars={{ target: "domain.com" }} />
-
 ## Step 1 — Find all IPs behind a domain ([Chaos](https://github.com/projectdiscovery/chaos-client))
 
-<PageCommand
+<CommandInput
+  vars={{ target: "domain.com" }}
   derivedVars={{
-    chaos_filename: { from: "target", template: "chaos_{value}.txt", shared: true },
+    output: { from: "target", template: "chaos_{value}.txt" },
   }}
-  command={`chaos -d {{target}} -o {{chaos_filename}}`}
+  command={`chaos -d {{target}} -o {{output}}`}
 />
 
 Chaos queries ProjectDiscovery's dataset of internet-wide DNS records to
@@ -36,11 +35,16 @@ return known subdomains/IPs for a domain.
 
 ## Step 2 — Filter to active hosts, extract IPs ([HTTPX](https://github.com/projectdiscovery/httpx))
 
-<PageCommand
+`input` defaults to Step 1's `output` file — edit both if you change either
+away from the default.
+
+<CommandInput
+  vars={{ target: "domain.com" }}
   derivedVars={{
-    ip_filename: { from: "target", template: "httpx_{value}.txt", shared: true },
+    input: { from: "target", template: "chaos_{value}.txt" },
+    output: { from: "target", template: "httpx_{value}.txt" },
   }}
-  command={`httpx-toolkit -l {{chaos_filename}} -ip -silent | sed -nE 's/.*\\[([0-9.]+)\\].*/\\1/p' > {{ip_filename}}`}
+  command={`httpx-toolkit -l {{input}} -ip -silent | sed -nE 's/.*\\[([0-9.]+)\\].*/\\1/p' > {{output}}`}
 />
 
 | Flag | Meaning |
@@ -52,22 +56,32 @@ return known subdomains/IPs for a domain.
 
 ## Step 3 — Deduplicate IPs
 
-<PageCommand
+`input` defaults to Step 2's `output` file — edit both if you change either
+away from the default.
+
+<CommandInput
+  vars={{ target: "domain.com" }}
   derivedVars={{
-    ips_filename: { from: "target", template: "ips_{value}.txt", shared: true },
+    input: { from: "target", template: "httpx_{value}.txt" },
+    output: { from: "target", template: "ips_{value}.txt" },
   }}
-  command={`cat {{ip_filename}} | sort -u > {{ips_filename}}`}
+  command={`cat {{input}} | sort -u > {{output}}`}
 />
 
 `sort -u` sorts the list and removes duplicate entries.
 
 ## Step 4 — Find open ports ([Naabu](https://github.com/projectdiscovery/naabu))
 
-<PageCommand
+`input` defaults to Step 3's `output` file — edit both if you change either
+away from the default.
+
+<CommandInput
+  vars={{ target: "domain.com" }}
   derivedVars={{
-    naabu_filename: { from: "target", template: "naabu_{value}.txt", shared: true },
+    input: { from: "target", template: "ips_{value}.txt" },
+    output: { from: "target", template: "naabu_{value}.txt" },
   }}
-  command={`naabu -l {{ips_filename}} -top-ports 100 -rate 1500 -verify -silent -o {{naabu_filename}}`}
+  command={`naabu -l {{input}} -top-ports 100 -rate 1500 -verify -silent -o {{output}}`}
 />
 
 | Flag | Meaning |
@@ -81,12 +95,18 @@ return known subdomains/IPs for a domain.
 
 ## Step 5 — Enrich with Nmap ([naabu-to-nmap](https://github.com/SAERANGAM/naabu-nmap))
 
-<PageCommand command={`python3 naabutonmap.py -i {{naabu_filename}}`} />
+`input` defaults to Step 4's `output` file — edit both if you change either
+away from the default.
+
+<CommandInput
+  vars={{ input: "naabu_domain.com.txt" }}
+  command={`python3 naabutonmap.py -i {{input}}`}
+/>
 
 A multi-threaded Nmap wrapper that takes Naabu's open-port list and runs
 Nmap's deeper service/version detection against each host:port pair,
 consolidating everything into a single report instead of running Nmap
-manually per host. It doesn't document its own output-filename flag — it
+manually per host. It doesn't document its own output-file flag — it
 writes an `nmap_out.xml` alongside the input by default (see the tool's own
 `-h` output for options).
 
@@ -96,12 +116,13 @@ writes an `nmap_out.xml` alongside the input by default (see the tool's own
 
 ## Step 6 — Format the results ([nmap-parse-output](https://github.com/mrschyte/nmap-parse-output))
 
-<PageCommand
+<CommandInput
+  vars={{ target: "domain.com" }}
   derivedVars={{
-    report_filename: { from: "target", template: "report_{value}.html" },
+    output: { from: "target", template: "report_{value}.html" },
   }}
   command={`./nmap-parse-output
-./nmap-parse-output nmap_out.xml html > {{report_filename}}`}
+./nmap-parse-output nmap_out.xml html > {{output}}`}
 />
 
 A modular Nmap XML post-processor that uses XSLT-based commands to extract,

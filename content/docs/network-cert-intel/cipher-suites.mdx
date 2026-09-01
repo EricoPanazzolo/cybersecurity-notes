@@ -21,8 +21,8 @@ vulnerabilities (e.g. Heartbleed, POODLE). Grades the result A–F.
 
 <CommandInput
   vars={{ domain: "domain.com" }}
-  derivedVars={{ filename: { from: "domain", template: "nmap-ciphers_{value}.txt" } }}
-  command={`nmap --script ssl-enum-ciphers -p 443 {{domain}} -oN {{filename}}`}
+  derivedVars={{ output: { from: "domain", template: "nmap-ciphers_{value}.txt" } }}
+  command={`nmap --script ssl-enum-ciphers -p 443 {{domain}} -oN {{output}}`}
 />
 
 See [Certificates](/docs/network-cert-intel/certificates) for inspecting the

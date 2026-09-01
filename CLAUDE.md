@@ -105,30 +105,38 @@ command, flag, or link that wasn't in the source.
    command live via Fumadocs' `DynamicCodeBlock`. Placeholder names must
    match `\w+` (no hyphens). Don't use it for illustrative/non-runnable
    examples or compact snippets inside a table.
-6. If several command blocks on one page share the same placeholder, use
-   `<PageVariables vars={{ name: "default" }} />` once (pinned field +
-   Reset button) and `<PageCommand command={\`... {{name}} ...\`} />` for
-   each block below it, instead of repeating `<CommandInput>`'s own field
-   every time (`components/page-variables.tsx`). The shared value comes
-   from React Context (`PageVariablesProvider`, wrapping `<MDX>` in
-   `app/docs/[[...slug]]/page.tsx`) — not a Fumadocs feature. Keep
-   `<CommandInput>` for a one-off command or one needing its own
-   independent value.
+6. There is no shared/pinned page-level state — every `<CommandInput>` is
+   self-contained. When several command blocks on one page logically use
+   the same value (e.g. `target` across three commands, or one playbook
+   step's output file feeding the next step's input), give each block its
+   own `vars`/`derivedVars` entry for it, with the same default text, even
+   though that repeats the field across blocks. The reader fills in each
+   block independently — there is deliberately no auto-sync between blocks.
 7. For a command that saves output to a file, add a `derivedVars` field
-   instead of hardcoding the filename — it tracks another field's live
+   instead of hardcoding the output file — it tracks another field's live
    value (via `lib/sanitize-filename.ts`, which strips URL schemes/paths)
    until the reader edits the derived field directly:
-   `derivedVars={{ filename: { from: "domain", template: "toolname_{value}.ext" } }}`.
+   `derivedVars={{ output: { from: "domain", template: "toolname_{value}.ext" } }}`.
    Naming convention: `<toolname>_{value}.<ext>`, or
    `<toolname>-<mode>_{value}.<ext>` for a page covering more than one
-   mode/technique. `<PageCommand>` also accepts `localVars` (same shape as
-   `<CommandInput>`'s `vars`) for a plain field local to one block only.
-   Skip this when a later command on the same page consumes that hardcoded
-   filename (a multi-step playbook) — making it dynamic there desyncs the
-   chain unless every step references the same variable.
-8. Playbooks go under `content/docs/playbooks/` with the `<Callout
+   mode/technique.
+8. Field names signal role, not tool: a block's own generated file is
+   always `output`; a file it reads in (typically a prior playbook step's
+   `output`) is always `input` — never reuse `output` to mean "the file
+   this block reads," and never name either field after the producing
+   tool (no `chaos_output`, `naabu_output`, etc.). `lib/field-order.ts`
+   orders fields as target-like field, then `input`, then `output`, then
+   anything else, so this convention also keeps field order predictable.
+   In a multi-step playbook, a step that consumes a prior step's output
+   re-declares `input` locally (deriving it from its own `target`/`domain`
+   field again, with the same template the previous step used for its
+   `output`) so the default matches what that step produced — and add a
+   one-line note above the block ("`input` defaults to Step N's `output`
+   file — edit both if you change either away from the default.") so the
+   reader notices the link between the two fields.
+9. Playbooks go under `content/docs/playbooks/` with the `<Callout
    type="info" title="Playbook">` intro described above.
-9. Run `npm run build` before committing.
+10. Run `npm run build` before committing.
 
 ### Theme
 

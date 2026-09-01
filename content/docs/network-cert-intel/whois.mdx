@@ -20,8 +20,8 @@ IP.
 
 <CommandInput
   vars={{ domain: "domain.com" }}
-  derivedVars={{ filename: { from: "domain", template: "whois_{value}.txt" } }}
-  command={`whois {{domain}} > {{filename}}`}
+  derivedVars={{ output: { from: "domain", template: "whois_{value}.txt" } }}
+  command={`whois {{domain}} > {{output}}`}
 />
 
 See [Domains](/docs/network-cert-intel/domains) and

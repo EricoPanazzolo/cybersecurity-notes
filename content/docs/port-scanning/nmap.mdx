@@ -12,8 +12,9 @@ versions), and the operating system in use.
 
 <CommandInput
   vars={{ target: "10.10.10.10" }}
-  derivedVars={{ filename: { from: "target", template: "nmap_{value}.xml" } }}
-  command={`nmap -sV -sC -A -oX {{filename}} {{target}}`}
+  derivedVars={{ output: { from: "target", template: "nmap_{value}.xml" } }}
+  command={`nmap -sV -sC -A {{target}} -oX {{output}}`}
+  placeholderMode
 />
 
 <Callout type="info">
@@ -25,9 +26,9 @@ versions), and the operating system in use.
 ## Scanning multiple targets from a file
 
 <CommandInput
-  vars={{ list: "targets.txt" }}
-  derivedVars={{ filename: { from: "list", template: "nmap_{value}.xml" } }}
-  command={`nmap -sV -sC -A -iL {{list}} -oX {{filename}}`}
+  vars={{ input: "targets.txt", output: "nmap_targets.xml" }}
+  command={`nmap -sV -sC -A -iL {{input}} -oX {{output}}`}
+  placeholderMode
 />
 
 ## Flag reference

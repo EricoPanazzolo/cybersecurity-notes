@@ -7,15 +7,14 @@ description: In-depth subdomain enumeration and passive reconnaissance.
 reconnaissance by aggregating data from certificate transparency logs, DNS
 records, web archives, and other open sources.
 
-<PageVariables vars={{ target: "domain.com" }} />
-
 ## Enumerate subdomains, filter to valid ones
 
-<PageCommand
+<CommandInput
+  vars={{ target: "domain.com" }}
   derivedVars={{
-    filename: { from: "target", template: "amass_{value}.txt", shared: true },
+    output: { from: "target", template: "amass_{value}.txt" },
   }}
-  command={`amass enum -passive -d {{target}} | grep -oE '([a-zA-Z0-9_-]+\\.)+{{target}}' > {{filename}}`}
+  command={`amass enum -passive -d {{target}} | grep -oE '([a-zA-Z0-9_-]+\\.)+{{target}}' > {{output}}`}
 />
 
 | Part | Meaning |
@@ -27,11 +26,16 @@ records, web archives, and other open sources.
 
 ## Check which discovered subdomains are actually alive
 
-<PageCommand
+`input` defaults to the file the previous step produced — edit both if you
+change either away from the default.
+
+<CommandInput
+  vars={{ target: "domain.com" }}
   derivedVars={{
-    filename: { from: "target", template: "amass-live_{value}.txt" },
+    input: { from: "target", template: "amass_{value}.txt" },
+    output: { from: "target", template: "amass-live_{value}.txt" },
   }}
-  command={`cat {{filename}} | httpx -silent > {{filename}}`}
+  command={`cat {{input}} | httpx -silent > {{output}}`}
 />
 
 | Flag | Meaning |

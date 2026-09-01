@@ -54,31 +54,28 @@ together.
 
 ## How the copy-ready commands work
 
-Most commands on this site have editable fields above them — fill one in
-and the highlighted command below updates live, ready to copy and run.
+Most commands on this site have editable fields directly above them — fill
+one in and the highlighted command below updates live, ready to copy and
+run. Each command block is independent: on a multi-step playbook, or a page
+where several commands target the same domain (e.g. FFUF's three fuzzing
+techniques), you fill in the same value on each block separately — nothing
+is auto-synced between commands.
 
-- **Most pages** show the field(s) directly above each individual command.
-- **Some pages** instead show a single pinned **"Page variables"** bar near
-  the top, shared by every command below it. That happens specifically when
-  two or more commands on the page need to agree on the same value —
-  either because it's a multi-step recipe where one step's output file
-  feeds the next step's input (see any playbook that chains tools), or
-  because several independent commands just happen to target the same
-  domain (e.g. FFUF's three fuzzing techniques). Filling in the shared
-  field once keeps every command on the page in sync, instead of retyping
-  the same value repeatedly.
-
-Two field names show up over and over, always in this order:
+Field names are consistent across the whole site and signal their role, not
+the tool — always in this order:
 
 - **target** — the domain, IP, URL, or keyword the command actually acts
   on. Whatever it's called on a given page (`domain`, `target`, `url`,
   `keyword`...), it's always the first field.
-- **filename** — the name of the file the command saves its output to.
-  Where one applies, it's always the second field, and it defaults to
-  `<toolname>_target` (or `<toolname>-<mode>_target` for a tool with more
-  than one mode, e.g. `gobuster-dir_target.txt`) — editable if you want a
-  different name, and it live-updates to match whatever you type into the
-  target field until you edit it directly.
+- **input** — a file this command reads. On a playbook step, it's the
+  previous step's output — its default is pre-filled to match, but since
+  fields don't auto-sync, edit both `input` here and `output` on the
+  earlier step if you want to rename either away from the default.
+- **output** — the name of the file the command saves its own results to.
+  It defaults to `<toolname>_target` (or `<toolname>-<mode>_target` for a
+  tool with more than one mode, e.g. `gobuster-dir_target.txt`) — editable
+  if you want a different name, and it live-updates to match whatever you
+  type into the target field until you edit it directly.
 
 ## Mind map
 

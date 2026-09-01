@@ -25,8 +25,8 @@ check or when you just want the findings, nothing else.
 
 <CommandInput
   vars={{ target: "https://target.com" }}
-  derivedVars={{ filename: { from: "target", template: "nuclei-simple_{value}.txt" } }}
-  command={`nuclei -u {{target}} -silent -o {{filename}}`}
+  derivedVars={{ output: { from: "target", template: "nuclei-simple_{value}.txt" } }}
+  command={`nuclei -u {{target}} -silent -o {{output}}`}
 />
 
 | Flag | Meaning |
@@ -42,8 +42,8 @@ scan.
 
 <CommandInput
   vars={{ target: "https://target.com" }}
-  derivedVars={{ filename: { from: "target", template: "nuclei-verbose_{value}.txt" } }}
-  command={`nuclei -u {{target}} -v -stats -o {{filename}}`}
+  derivedVars={{ output: { from: "target", template: "nuclei-verbose_{value}.txt" } }}
+  command={`nuclei -u {{target}} -v -stats -o {{output}}`}
 />
 
 | Flag | Meaning |
@@ -62,12 +62,12 @@ option — expect it to take a while and generate real traffic.
 
 <CommandInput
   vars={{ target: "https://target.com" }}
-  derivedVars={{ filename: { from: "target", template: "nuclei_{value}.jsonl" } }}
+  derivedVars={{ output: { from: "target", template: "nuclei_{value}.jsonl" } }}
   command={`nuclei -u {{target}} \\
   -t ~/nuclei-templates/ \\
   -severity low,medium,high,critical \\
   -c 50 -rl 150 \\
-  -j -o {{filename}}`}
+  -j -o {{output}}`}
 />
 
 | Flag | Meaning |

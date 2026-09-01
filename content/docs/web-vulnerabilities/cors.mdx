@@ -12,8 +12,8 @@ manual/conceptual explanation of what makes a CORS config exploitable.
 
 <CommandInput
   vars={{ target: "target" }}
-  derivedVars={{ filename: { from: "target", template: "corsy_{value}.txt" } }}
-  command={`python3 corsy.py -u {{target}} -o {{filename}}`}
+  derivedVars={{ output: { from: "target", template: "corsy_{value}.txt" } }}
+  command={`python3 corsy.py -u {{target}} -o {{output}}`}
 />
 
 ## Flag reference
