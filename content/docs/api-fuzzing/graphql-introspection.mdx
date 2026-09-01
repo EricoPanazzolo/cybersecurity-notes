@@ -1,0 +1,63 @@
+---
+title: GraphQL Introspection
+description: Dumping a GraphQL API's entire schema via its own introspection query.
+---
+
+GraphQL APIs can answer questions about themselves — a built-in
+**introspection** query returns every type, field, and argument the
+schema exposes. When introspection is left enabled (the default in most
+frameworks unless explicitly disabled for production), it hands over the
+same complete map that Swagger/OpenAPI gives REST APIs.
+
+## Send a raw introspection query
+
+<CommandInput
+  vars={{ target: "https://target.com/graphql" }}
+  derivedVars={{ output: { from: "target", template: "graphql-schema_{value}.json" } }}
+  command={`curl -s -X POST {{target}} \\
+  -H "Content-Type: application/json" \\
+  -d '{"query": "query IntrospectionQuery { __schema { types { name fields { name } } } } "}' \\
+  | jq . > {{output}}`}
+  placeholderMode
+/>
+
+| Part | Meaning |
+| --- | --- |
+| `-X POST` | GraphQL endpoints accept queries as a POST body (a GET-based variant sometimes also works, passing the query as a URL parameter). |
+| `-H "Content-Type: application/json"` | The API expects the query wrapped in a JSON body. |
+| `-d '{"query": ...}'` | The introspection query itself — this trimmed version returns every type name and its fields; the full canonical introspection query (also covering arguments, enum values, and descriptions) is longer — see the automation tools below for pulling the complete schema. |
+| `jq .` | Pretty-prints the JSON response for readability. |
+
+<Callout type="warn">
+  Many production APIs now disable introspection deliberately, in which
+  case this returns an error/null `__schema` — that's expected, not a
+  bug in the query.
+</Callout>
+
+## Automation tools
+
+Rather than hand-writing the full introspection query and paging through
+a raw JSON dump, these tools automate schema recovery and exploration:
+
+<Cards>
+  <Card title="InQL" href="https://github.com/doyensec/inql">
+    Burp Suite extension / standalone CLI that runs full introspection,
+    renders the schema as a browsable tree, and auto-generates example
+    queries for every operation it finds.
+  </Card>
+  <Card title="graphql-cop" href="https://github.com/dolevf/graphql-cop">
+    Security-focused GraphQL auditor — checks for common misconfigurations
+    (introspection enabled, batching/DoS exposure, field suggestions
+    leaking schema info even with introspection off, etc.).
+  </Card>
+  <Card title="Clairvoyance" href="https://github.com/nikitastupin/clairvoyance">
+    Recovers a usable schema even when introspection is disabled, by
+    brute-forcing field/type names and inferring structure from GraphQL's
+    own error messages.
+  </Card>
+</Cards>
+
+<Callout type="info">
+  If introspection is off, reach for Clairvoyance instead of assuming the
+  schema is unrecoverable — error-based inference often still works.
+</Callout>

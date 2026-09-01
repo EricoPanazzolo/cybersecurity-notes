@@ -1,0 +1,101 @@
+---
+title: Swagger/OpenAPI Discovery
+description: Checking for an exposed API spec file that hands you the entire route map.
+---
+
+Many APIs are built from a **Swagger 2.0** or **OpenAPI 3.x** spec, and
+that spec file — a complete machine-readable map of every route, method,
+and parameter the API exposes — is frequently left reachable at a
+predictable path instead of being restricted to internal tooling. Finding
+it turns blind route-guessing into reading a document.
+
+## Probe with SecLists' API wordlist
+
+[SecLists](/docs/wordlists-resources/seclists) ships a dedicated,
+295-line wordlist of real-world API paths — including most Swagger/OpenAPI
+spec and UI locations (`swagger.json`, `api/v1/swagger.json`,
+`api/apidocs/swagger.json`, `openapi.json`, `docs`, `swagger-resources`,
+and more) — so reach for that instead of hand-rolling a path list.
+
+<CommandInput
+  vars={{ domain: "domain.com" }}
+  derivedVars={{ output: { from: "domain", template: "swagger-ffuf_{value}.txt" } }}
+  command={`ffuf -u "https://{{domain}}/FUZZ" \\
+  -w /usr/share/wordlists/SecLists/Discovery/Web-Content/api/api-endpoints.txt \\
+  -mc 200,204,301,302,307,401,403 \\
+  -t 60 -s | awk '{print "https://{{domain}}/"$1}' | tee {{output}}`}
+  placeholderMode
+/>
+
+| Flag | Meaning |
+| --- | --- |
+| `-u <url>` | Target URL; `FUZZ` marks the injection point. |
+| `-w <wordlist>` | Wordlist to fuzz with — here, SecLists' API path list. |
+| `-mc <codes>` | Match responses with these status codes only. |
+| `-t <n>` | Number of concurrent threads. |
+| `-s` | Silent mode — suppresses ffuf's banner/progress output, printing only matched paths (one per line) as they're found. |
+| `awk '{print "https://domain/"$1}'` | Reconstructs the full URL from each matched path, since `-s` output is just the bare path. |
+| `tee <file>` | Prints each line to the terminal as it arrives **and** saves the same list to a file. |
+
+<Callout type="warn">
+  Without `-s` (silent mode), `-o <file>` writes ffuf's full JSON run
+  report (config + results), not a plain list of matched URLs. `-s | awk`
+  produces the clean list instead — and piping that through `tee` (rather
+  than `>`) prints each match to your terminal the moment it's found,
+  while still saving the same list to the output file.
+</Callout>
+
+See the [FFUF page](/docs/web-fuzzing/ffuf) for more on this tool's
+flags in general — this page's table above covers this specific command.
+
+## Quick manual check for framework defaults not in that wordlist
+
+A handful of common framework-default paths aren't in SecLists' list
+(it favors `api/`-prefixed and resource-style paths) — worth a quick
+manual check too:
+
+<CommandInput
+  vars={{ target: "https://target.com" }}
+  derivedVars={{ output: { from: "target", template: "swagger-probe_{value}.txt" } }}
+  command={`for p in swagger-ui/ swagger-ui.html swagger/index.html v1/api-docs v2/api-docs v3/api-docs openapi.yaml api/v1/openapi.json api/v2/openapi.json redoc; do
+  echo "== $p ==" >> {{output}}
+  curl -s -o /dev/null -w "%{http_code}\\n" "{{target}}/$p" >> {{output}}
+done`}
+  placeholderMode
+/>
+
+| Part | Meaning |
+| --- | --- |
+| `for p in ...; do ... done` | Loops over the framework-default paths SecLists' `api-endpoints.txt` doesn't already cover. |
+| `curl -s -o /dev/null -w "%{http_code}\n"` | Silent request, discards the body, prints only the HTTP status code — a fast existence check without downloading full responses for every path. |
+
+| Path | Framework default |
+| --- | --- |
+| `v2/api-docs` | **springfox** (older Spring Boot auto-generated OpenAPI docs). |
+| `v3/api-docs` | **springdoc** (current Spring Boot equivalent of springfox). |
+| `swagger/index.html`, `swagger-ui/`, `swagger-ui.html` | **Swashbuckle** (ASP.NET Core's default Swagger UI). |
+| `redoc` | **FastAPI** (Python) — ReDoc UI, alongside Swagger UI at `/docs` (already in the wordlist above). |
+
+## Once you have a spec
+
+A found spec is a complete route/parameter map — open it directly, or feed
+it into a tool that acts on it:
+
+<Cards>
+  <Card title="Kiterunner" href="/docs/api-fuzzing/kiterunner">
+    Can consume an OpenAPI/Swagger file directly as its wordlist source for
+    API-aware route brute-forcing.
+  </Card>
+  <Card title="Sj (Swagger Jacker) on GitHub" href="https://github.com/BishopFox/sj">
+    Bishop Fox's tool for parsing a discovered Swagger/OpenAPI file and
+    firing real test requests at every documented route/method.
+  </Card>
+</Cards>
+
+<Callout type="warn">
+  A reachable spec file isn't a vulnerability by itself, but it routinely
+  documents endpoints (admin routes, internal/debug operations) never
+  linked anywhere in the actual application UI — treat every route it
+  reveals as in-scope only if the underlying host/API is in your
+  authorized scope.
+</Callout>

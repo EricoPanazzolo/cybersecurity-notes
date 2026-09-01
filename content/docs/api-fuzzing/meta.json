@@ -1,0 +1,4 @@
+{
+  "title": "API Fuzzing & Enumeration",
+  "pages": ["swagger-openapi-discovery", "kiterunner", "arjun", "graphql-introspection"]
+}

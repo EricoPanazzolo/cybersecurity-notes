@@ -66,6 +66,7 @@ mistaken for one tool's reference:
 | Subdomain & Attack Surface Discovery | Overview, Amass, BBOT, Gobuster (DNS mode), FFUF (subdomain mode) |
 | Port & Service Scanning | Nmap |
 | Web Content & Directory Fuzzing | Gobuster (dir mode), Dirsearch, FFUF (dir mode) |
+| API Fuzzing & Enumeration | Swagger/OpenAPI discovery, Kiterunner, Arjun, GraphQL introspection |
 | Cloud & Identity Enumeration | Azure AD / Entra ID enumeration, Bucket enumeration, Firebase enumeration |
 | Web Application Vulnerabilities | Nuclei, CORS (Corsy), Code injection probe, LFI |
 | Network & Certificate Intelligence | Cipher Suites, Certificates, Whois, IP, Domains |

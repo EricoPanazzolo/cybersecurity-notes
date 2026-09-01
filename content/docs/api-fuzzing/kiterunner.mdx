@@ -1,0 +1,53 @@
+---
+title: Kiterunner
+description: API-aware route-guessing tool built from real OpenAPI/Swagger wordlists.
+---
+
+**Kiterunner** (Assetnote) is a content-discovery tool purpose-built for
+REST APIs. Unlike a generic path fuzzer, it understands API-style routing
+(versioned prefixes, path parameters like `/users/{id}`) and ships
+wordlists derived from real OpenAPI/Swagger specs scraped across the
+internet — so it guesses routes that actually look like API endpoints,
+not generic web paths.
+
+<Cards>
+  <Card title="Kiterunner on GitHub" href="https://github.com/assetnote/kiterunner">
+    Source, the full `kr scan --help` flag reference, and the bundled
+    wordlist/API-spec collection.
+  </Card>
+</Cards>
+
+## Scan with a bundled API-spec wordlist
+
+<CommandInput
+  vars={{ target: "https://target.com", apiset: "apiroutes-210228:20000" }}
+  derivedVars={{ output: { from: "target", template: "kiterunner_{value}.txt" } }}
+  command={`kr scan {{target}} -A={{apiset}} -x 20 -o {{output}}`}
+  placeholderMode
+/>
+
+| Flag | Meaning |
+| --- | --- |
+| `-A=<apiset>` | Use one of Kiterunner's bundled wordlists, built from real OpenAPI/Swagger route corpora — check `kr scan --help` for the current alias list, since the bundled collection is updated between releases. |
+| `-x <n>` | Max number of hosts to scan in parallel. |
+| `-o <file>` | Save results to a file. |
+
+## Scan with a custom wordlist
+
+<CommandInput
+  vars={{ target: "https://target.com", wordlist: "routes.kite", token: "" }}
+  derivedVars={{ output: { from: "target", template: "kiterunner-custom_{value}.txt" } }}
+  command={`kr scan {{target}} -w {{wordlist}} -x 20 -H "Authorization: Bearer {{token}}" -o {{output}}`}
+  placeholderMode
+/>
+
+| Flag | Meaning |
+| --- | --- |
+| `-w <file>` | Custom wordlist — e.g. one built from a Swagger/OpenAPI spec found via [Swagger/OpenAPI Discovery](/docs/api-fuzzing/swagger-openapi-discovery), instead of Kiterunner's bundled collection. |
+| `-H "<header>"` | Add a custom header — commonly an `Authorization` token, since many API routes only reveal themselves (return non-404) once authenticated. |
+
+<Callout type="warn">
+  Kiterunner sends real requests against every guessed route — treat it
+  like any other active brute-force tool: stay within your authorized
+  scope, and expect it to be noisier than passive discovery.
+</Callout>

@@ -7,6 +7,7 @@
     "subdomain-discovery",
     "port-scanning",
     "web-fuzzing",
+    "api-fuzzing",
     "cloud-identity-enum",
     "web-vulnerabilities",
     "network-cert-intel",

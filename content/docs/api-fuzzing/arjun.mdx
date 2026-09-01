@@ -1,0 +1,56 @@
+---
+title: Arjun
+description: HTTP parameter discovery — finding hidden GET/POST/JSON parameters.
+---
+
+**Arjun** (same author as [uro](https://github.com/s0md3v/uro), already
+used in the [Wayback discovery playbook](/docs/playbooks/wayback-404-discovery))
+finds hidden, undocumented parameters on a known endpoint — GET, POST, or
+JSON body — by batching a large wordlist of common parameter names against
+the target and diffing responses to isolate the ones that actually change
+behavior.
+
+<Cards>
+  <Card title="Arjun on GitHub" href="https://github.com/s0md3v/Arjun">
+    Source and full flag reference.
+  </Card>
+</Cards>
+
+## Discover hidden parameters
+
+<CommandInput
+  vars={{ url: "https://target.com/api/endpoint", method: "GET" }}
+  derivedVars={{ output: { from: "url", template: "arjun_{value}.json" } }}
+  command={`arjun -u {{url}} -m {{method}} -t 10 -o {{output}}`}
+  placeholderMode
+/>
+
+| Flag | Meaning |
+| --- | --- |
+| `-u <url>` | Target endpoint to test. |
+| `-m <method>` | Request type to fuzz: `GET`, `POST`, `JSON`, `XML`, or `HEADERS`. |
+| `-t <n>` | Number of concurrent threads. |
+| `-o <file>` | Save discovered parameters to a file. |
+
+## Other useful flags (not in the original notes)
+
+| Flag | Meaning |
+| --- | --- |
+| `-w <wordlist>` | Custom parameter wordlist, instead of Arjun's large bundled default. |
+| `-d <n>` | Delay (seconds) between requests, to stay under rate limits. |
+| `--stable` | Trades speed for reliability — useful against flaky/rate-limited targets where the default batching produces false negatives. |
+
+<Callout type="info">
+  Run this against endpoints surfaced by
+  [Swagger/OpenAPI Discovery](/docs/api-fuzzing/swagger-openapi-discovery) or
+  [Kiterunner](/docs/api-fuzzing/kiterunner) — a discovered route often
+  accepts more parameters than the ones actually documented or used by the
+  front-end.
+</Callout>
+
+<Callout type="warn">
+  A parameter that changes the response isn't automatically a
+  vulnerability — confirm what it actually does (debug flag, filter,
+  auth bypass, etc.) before reporting it, and stay within your authorized
+  scope.
+</Callout>
