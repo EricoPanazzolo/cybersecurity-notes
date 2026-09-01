@@ -2,27 +2,61 @@
 
 import { useId, useMemo, useState } from "react";
 import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
+import { sanitizeForFilename } from "@/lib/sanitize-filename";
 
 const VAR_PATTERN = /\{\{(\w+)\}\}/g;
+
+interface DerivedVarConfig {
+  /** Name of the source var this one tracks until manually edited. */
+  from: string;
+  /** Template for the derived default; `{value}` is replaced by the source var's current value. */
+  template: string;
+}
 
 interface CommandInputProps {
   /** Command template, with placeholders written as `{{name}}`. */
   command: string;
   /** Default value shown for each `{{name}}` placeholder before the user edits it. */
   vars: Record<string, string>;
+  /**
+   * Vars whose default tracks another var's live value (e.g. an output
+   * filename derived from a domain) until the reader edits that field
+   * directly, at which point it stops auto-updating.
+   */
+  derivedVars?: Record<string, DerivedVarConfig>;
   lang?: string;
 }
 
-export function CommandInput({ command, vars, lang = "bash" }: CommandInputProps) {
+export function CommandInput({
+  command,
+  vars,
+  derivedVars,
+  lang = "bash",
+}: CommandInputProps) {
   const id = useId();
   const names = useMemo(
     () => Array.from(new Set(Array.from(command.matchAll(VAR_PATTERN), (m) => m[1]))),
     [command],
   );
   const [values, setValues] = useState<Record<string, string>>(vars);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const derived = useMemo(() => derivedVars ?? {}, [derivedVars]);
+
+  const effectiveValues = useMemo(() => {
+    const next = { ...values };
+    for (const [name, config] of Object.entries(derived)) {
+      if (!touched[name]) {
+        next[name] = config.template.replace(
+          "{value}",
+          sanitizeForFilename(values[config.from] ?? ""),
+        );
+      }
+    }
+    return next;
+  }, [values, touched, derived]);
 
   const rendered = names.reduce(
-    (acc, name) => acc.replaceAll(`{{${name}}}`, values[name] ?? ""),
+    (acc, name) => acc.replaceAll(`{{${name}}}`, effectiveValues[name] ?? ""),
     command,
   );
 
@@ -39,10 +73,13 @@ export function CommandInput({ command, vars, lang = "bash" }: CommandInputProps
             <input
               id={`${id}-${name}`}
               type="text"
-              value={values[name] ?? ""}
-              onChange={(e) =>
-                setValues((prev) => ({ ...prev, [name]: e.target.value }))
-              }
+              value={effectiveValues[name] ?? ""}
+              onChange={(e) => {
+                setValues((prev) => ({ ...prev, [name]: e.target.value }));
+                if (derived[name]) {
+                  setTouched((prev) => ({ ...prev, [name]: true }));
+                }
+              }}
               placeholder={vars[name]}
               spellCheck={false}
               autoComplete="off"

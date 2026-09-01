@@ -1,0 +1,59 @@
+---
+title: Nmap → HTML Report (nmap2html)
+description: Turn an Nmap XML scan into a self-contained, interactive HTML report.
+---
+
+<Callout type="info" title="Playbook">
+  This recipe chains [Nmap](/docs/port-scanning/nmap) with
+  [nmap2html](https://github.com/EricoPanazzolo/nmap2html) — a standalone
+  Python tool that turns Nmap's XML output into a clean, interactive,
+  self-contained HTML report, no server or dependencies required.
+</Callout>
+
+## Step 1 — Scan with Nmap, save XML output
+
+<CommandInput
+  vars={{ target: "10.10.10.10" }}
+  derivedVars={{ filename: { from: "target", template: "nmap_{value}.xml" } }}
+  command={`nmap -sV -sC -A -oX {{filename}} {{target}}`}
+/>
+
+`-oX` is required — nmap2html only reads Nmap's XML output, not the
+plain-text or grepable formats.
+
+<Callout type="info">
+  Scanning multiple targets from a file also works — see
+  [Nmap's flag reference](/docs/port-scanning/nmap) for `-iL`.
+</Callout>
+
+## Step 2 — Generate the HTML report
+
+<CommandInput
+  vars={{ filename: "nmap_10.10.10.10.xml" }}
+  command={`python3 nmap2html.py {{filename}}`}
+/>
+
+By default this writes `<name>.html` next to the input file, plus
+`assets/report.css` and `assets/report.js`. Pass `-o` to choose the output
+filename instead:
+
+<CommandInput
+  vars={{ filename: "nmap_10.10.10.10.xml", output: "assessment.html" }}
+  command={`python3 nmap2html.py {{filename}} -o {{output}}`}
+/>
+
+## What you get
+
+- A single self-contained HTML report — no server, no external
+  dependencies, just open it in a browser.
+- Detail and sheet views for browsing scan results.
+- Review tracking via the browser's `localStorage`.
+- Clickable links for any HTTP/HTTPS service Nmap found.
+
+Requires Python 3.9+ and Nmap itself — no third-party Python packages.
+
+<Cards>
+  <Card title="nmap2html on GitHub" href="https://github.com/EricoPanazzolo/nmap2html">
+    Source, full flag reference (`python3 nmap2html.py -h`), and releases.
+  </Card>
+</Cards>

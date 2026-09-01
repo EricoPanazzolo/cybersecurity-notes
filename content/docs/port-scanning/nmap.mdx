@@ -11,13 +11,24 @@ versions), and the operating system in use.
 ## Basic scan
 
 <CommandInput
-  vars={{ filename: "scan", target: "10.10.10.10" }}
+  vars={{ target: "10.10.10.10" }}
+  derivedVars={{ filename: { from: "target", template: "nmap_{value}.xml" } }}
   command={`nmap -sV -sC -A -oX {{filename}} {{target}}`}
 />
 
 <Callout type="info">
-  The output saves in XML format to later use the nmap2html tool.
+  The output saves in XML format for feeding into other tools — see the
+  [Nmap → HTML Report (nmap2html)](/docs/playbooks/nmap2html-report)
+  playbook for turning it into a browsable HTML report.
 </Callout>
+
+## Scanning multiple targets from a file
+
+<CommandInput
+  vars={{ list: "targets.txt" }}
+  derivedVars={{ filename: { from: "list", template: "nmap_{value}.xml" } }}
+  command={`nmap -sV -sC -A -iL {{list}} -oX {{filename}}`}
+/>
 
 ## Flag reference
 
@@ -27,6 +38,7 @@ versions), and the operating system in use.
 | `-sC` | **Default scripts** — runs Nmap's default NSE script set (`--script=default`) for extra enumeration (banners, common misconfigurations, etc.). |
 | `-A` | **Aggressive scan** — enables OS detection, version detection, script scanning, and traceroute together. Noisy but thorough. |
 | `-oX <file>` | Saves output as XML only (useful for feeding into other tools, e.g. nmap2html). |
+| `-iL <file>` | Read targets from a file (one host/IP/CIDR per line) instead of a single target on the command line. |
 | `-p-` | Scans all 65,535 ports instead of the default top 1000. |
 | `<target>` | Target IP, hostname, or CIDR range to scan. |
 

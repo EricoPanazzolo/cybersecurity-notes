@@ -88,9 +88,11 @@ function render(template: string, ip: string, port: string) {
 export function ReverseShellGenerator() {
   const [ip, setIp] = useState(DEFAULTS.ip);
   const [port, setPort] = useState(DEFAULTS.port);
+  const [selected, setSelected] = useState(PAYLOADS[0].name);
+  const payload = PAYLOADS.find((p) => p.name === selected) ?? PAYLOADS[0];
 
   return (
-    <div className="not-prose my-4 flex flex-col gap-6">
+    <div className="not-prose my-4 flex flex-col gap-3">
       <div className="sticky top-(--fd-header-height) z-10 flex flex-wrap items-center gap-3 rounded-lg border border-fd-border bg-fd-background/95 px-3 py-2 shadow-sm backdrop-blur">
         <label className="flex items-center gap-2 text-sm text-fd-muted-foreground">
           <span className="font-medium text-fd-foreground">IP</span>
@@ -116,11 +118,26 @@ export function ReverseShellGenerator() {
             className="w-20 rounded-md border border-fd-border bg-fd-background px-2 py-1 text-sm text-fd-foreground outline-none focus:ring-2 focus:ring-fd-ring"
           />
         </label>
+        <label className="flex items-center gap-2 text-sm text-fd-muted-foreground">
+          <span className="font-medium text-fd-foreground">Payload</span>
+          <select
+            value={selected}
+            onChange={(e) => setSelected(e.target.value)}
+            className="rounded-md border border-fd-border bg-fd-background px-2 py-1 text-sm text-fd-foreground outline-none focus:ring-2 focus:ring-fd-ring"
+          >
+            {PAYLOADS.map((p) => (
+              <option key={p.name} value={p.name}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
         <button
           type="button"
           onClick={() => {
             setIp(DEFAULTS.ip);
             setPort(DEFAULTS.port);
+            setSelected(PAYLOADS[0].name);
           }}
           className="ml-auto rounded-md border border-fd-border px-2 py-1 text-xs font-medium text-fd-muted-foreground transition hover:bg-fd-accent hover:text-fd-accent-foreground"
         >
@@ -128,17 +145,10 @@ export function ReverseShellGenerator() {
         </button>
       </div>
 
-      {PAYLOADS.map((payload) => (
-        <div key={payload.name}>
-          <h3 className="mb-2 text-base font-semibold text-fd-foreground">
-            {payload.name}
-          </h3>
-          <DynamicCodeBlock
-            lang={payload.lang}
-            code={render(payload.template, ip, port)}
-          />
-        </div>
-      ))}
+      <DynamicCodeBlock
+        lang={payload.lang}
+        code={render(payload.template, ip, port)}
+      />
     </div>
   );
 }

@@ -38,7 +38,8 @@ to a target domain, expanding the attack surface beyond the main site.
 
 <CommandInput
   vars={{ domain: "domain.com" }}
-  command={`curl -s "https://crt.sh/?q=%25.{{domain}}&output=json" | jq -r '.[].name_value' | sort -u`}
+  derivedVars={{ filename: { from: "domain", template: "crtsh_{value}.txt" } }}
+  command={`curl -s "https://crt.sh/?q=%25.{{domain}}&output=json" | jq -r '.[].name_value' | sort -u > {{filename}}`}
 />
 
 Queries certificate transparency logs ([crt.sh](https://crt.sh)) for any

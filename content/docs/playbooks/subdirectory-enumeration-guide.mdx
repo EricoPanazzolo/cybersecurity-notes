@@ -3,14 +3,10 @@ title: Subdirectory Enumeration (Decision Guide)
 description: Choosing between Gobuster and FFUF for brute-forcing hidden directories/paths.
 ---
 
-<Callout type="info" title="Playbook">
-  This page picks between two separate CLI tools —
-  [Gobuster](/docs/web-fuzzing/gobuster) and [FFUF](/docs/web-fuzzing/ffuf)
-  — for the same job (directory/path brute-forcing), plus a content-based
-  filtering trick for sites with a fake/custom 404 page. It isn't a chained
-  multi-tool pipeline like the [Fuzzing & Scanning Pipeline](/docs/playbooks/fuzzing-scanning-pipeline)
-  — it's a decision guide, grouped here because its commands duplicate the
-  dedicated Gobuster/FFUF pages rather than introducing new ones.
+<Callout type="info" title="Decision guide">
+  This page doesn't introduce new commands — the commands for every option
+  below live on their dedicated tool pages. This page only summarizes when
+  to reach for each one.
 </Callout>
 
 Two tools for brute-forcing hidden directories/paths on a web server, plus a
@@ -18,70 +14,38 @@ content-based filtering trick for sites with a fake/custom 404 page.
 
 ## Gobuster
 
-<CommandInput
-  vars={{ domain: "domain.com" }}
-  command={`gobuster dir -u https://{{domain}} -w /usr/share/wordlists/`}
-/>
+The simpler option — single-mode directory brute-force, good default choice
+when you don't need response filtering beyond status codes.
 
-| Flag | Meaning |
-| --- | --- |
-| `dir` | Mode: brute-force directories/files. |
-| `-u <url>` | Target base URL. |
-| `-w <wordlist>` | Wordlist path. |
-
-See the [dedicated Gobuster page](/docs/web-fuzzing/gobuster) for the full
-directory-mode flag reference (DNS mode is covered on the
+See the [Gobuster page](/docs/web-fuzzing/gobuster) for the command and full
+flag reference (DNS mode is covered separately on the
 [Subdomain & Attack Surface Discovery](/docs/subdomain-discovery/gobuster-dns)
 page).
 
 ## FFUF (length/status-based)
 
-<CommandInput
-  vars={{ domain: "target.com" }}
-  command={`ffuf -u "https://{{domain}}/FUZZ" \\
-  -w /usr/share/wordlists/SecLists/Discovery/Web-Content/DirBuster-2007_directory-list-lowercase-2.3-big.txt \\
-  -mc 200,204,301,302,307,401,403 \\
-  -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0" \\
-  -t 60 --rate 100 | \\
-  awk '{print "https://{{domain}}/"$1}' > domain.txt`}
-/>
+More configurable than Gobuster: custom headers, tunable
+concurrency/rate-limiting, and multiple status codes matched in one flag.
+
+See the ["Directory / sub-path fuzzing" section of the FFUF page](/docs/web-fuzzing/ffuf)
+for the command and full flag reference.
 
 ## FFUF (content-based filtering — for sites with a fake 404 page)
-
-<CommandInput
-  vars={{ domain: "target.com" }}
-  command={`ffuf -u https://{{domain}}/FUZZ \\
-  -w /usr/share/wordlists/dirb/big.txt \\
-  -fr "was not found on this server" \\
-  -o ffuf_result.json -of json`}
-/>
 
 <Callout type="info">
   Before using this, check what the site's fake-404 page actually says.
 </Callout>
 
-`"was not found on this server"` is the literal string pulled from the
-target's custom 404 page. `-fr` filters out any response whose **body**
-matches that string — regardless of status code or length. This is more
-reliable than filtering by response length/size, because a fake-404 page
-often returns `200 OK` with a fixed body, which breaks naive length-based
-filtering.
+Many apps return `200 OK` with a custom "not found" page instead of a real
+HTTP 404, which breaks naive status-code/length filtering. FFUF's `-fr` flag
+filters out any response whose **body** matches a given string/regex,
+regardless of status code or length.
 
-## Flag reference
-
-| Flag | Meaning |
-| --- | --- |
-| `-u <url>` | Target URL; `FUZZ` marks the injection point. |
-| `-w <wordlist>` | Wordlist to fuzz with. |
-| `-mc <codes>` | Match responses with these status codes only. |
-| `-fr <regex>` | Filter out responses whose body matches this regex (content-based). |
-| `-H "<header>"` | Custom header — here, a spoofed browser User-Agent. |
-| `-t <n>` | Concurrent threads. |
-| `--rate <n>` | Max requests/second. |
-| `-o <file>` / `-of <format>` | Output file and format. |
+See the ["Content-based filtering" section of the FFUF page](/docs/web-fuzzing/ffuf)
+for the command and full flag reference.
 
 <Callout type="warn">
   Always check for a custom/fake 404 page before relying on status-code or
-  length-based filters — `-fr` with the exact fake-404 body text is the most
-  reliable approach in that case.
+  length-based filters — content-based filtering with the exact fake-404
+  body text is the most reliable approach in that case.
 </Callout>

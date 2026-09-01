@@ -2,6 +2,7 @@
   "title": "Playbooks & Workflows",
   "pages": [
     "fuzzing-scanning-pipeline",
+    "nmap2html-report",
     "subdirectory-enumeration-guide",
     "cors-mass-hunting",
     "httrack-trufflehog",

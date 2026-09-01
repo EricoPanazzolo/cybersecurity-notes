@@ -82,7 +82,7 @@ for a single tool's reference, so they're split into dedicated sections:
 | Web Application Vulnerabilities | Nuclei, CORS (Corsy), Code injection probe, LFI |
 | Network & Certificate Intelligence | Cipher Suites, Certificates, Whois, IP, Domains |
 | **Reverse Shells & Payloads** | Reverse shell one-liner generator (IP + port → every language's payload) |
-| **Playbooks & Workflows** | Fuzzing & scanning pipeline (Chaos→HTTPX→Naabu→Nmap), Subdirectory enumeration decision guide, CORS mass hunting, HTTrack+TruffleHog, Wayback+uro archived-file discovery |
+| **Playbooks & Workflows** | Fuzzing & scanning pipeline (Chaos→HTTPX→Naabu→Nmap), Nmap→HTML report (nmap2html), Subdirectory enumeration decision guide, CORS mass hunting, HTTrack+TruffleHog, Wayback+uro archived-file discovery |
 | **AI Prompts** | Prompt techniques for using AI coding assistants in security work (e.g. auditing vibe-coded apps) |
 
 Pages whose commands substantially duplicate another page's (e.g. the
@@ -146,10 +146,35 @@ wasn't in the source material.
    `<PageVariables>` renders a pinned field (with a Reset button) that every
    `<PageCommand>` on that page shares; `<CommandInput>` stays the right
    choice for a one-off command or one that needs its own independent value.
-7. If it's a playbook (chains multiple separate tools), put it under
+7. For a command that saves its output to a file, give it an editable
+   output-filename field too, defaulted from the domain/target rather than
+   hardcoded — `derivedVars` on `<CommandInput>` or `<PageCommand>` tracks
+   another field's live value until the reader edits the derived field
+   directly:
+   ```mdx
+   <CommandInput
+     vars={{ domain: "domain.com" }}
+     derivedVars={{ filename: { from: "domain", template: "amass_{value}.txt" } }}
+     command={`amass enum -d {{domain}} > {{filename}}`}
+   />
+   ```
+   Naming convention: `<toolname>_{value}.<ext>` for a single-mode tool, or
+   `<toolname>-<mode>_{value}.<ext>` when the page documents more than one
+   mode/technique (e.g. `gobuster-dir_{value}.txt` vs `gobuster-dns_{value}.txt`).
+   The source value is sanitized for filenames automatically (scheme/path
+   characters stripped), so `from` can point at a URL-shaped var too. On
+   `<PageCommand>`, a plain `localVars` (same shape as `<CommandInput>`'s
+   `vars`) also works for a field that's local to one block only — e.g. the
+   `-fr` search string on FFUF's content-based-filtering block.
+
+   Skip this for a command whose output is consumed by a *later* command on
+   the same page (e.g. a multi-step playbook) — making the filename dynamic
+   there would desync it from the hardcoded reference in the next step,
+   unless that step is converted to reference the same variable too.
+8. If it's a playbook (chains multiple separate tools), put it under
    `content/docs/playbooks/` and open with a
    `<Callout type="info" title="Playbook">` linking to each tool's page.
-8. Run `npm run build` before committing — it will fail on MDX syntax errors
+9. Run `npm run build` before committing — it will fail on MDX syntax errors
    the dev server sometimes tolerates.
 
 ## Theme

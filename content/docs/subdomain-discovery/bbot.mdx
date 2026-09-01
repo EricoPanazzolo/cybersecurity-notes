@@ -14,12 +14,13 @@ etc.
 
 <CommandInput
   vars={{ target: "domain.com" }}
+  derivedVars={{ filename: { from: "target", template: "bbot_{value}" } }}
   command={`bbot -t {{target}} \\
   -p cloud-enum web-heavy spider webbrute wayback code-enum js-audit baddns nuclei lightfuzz-light \\
   -c modules.nuclei.severity=low,medium,high,critical \\
   -y \\
   -n enum_{{target}}_2026 \\
-  -o .`}
+  -o {{filename}}`}
 />
 
 ## Top-level flag reference

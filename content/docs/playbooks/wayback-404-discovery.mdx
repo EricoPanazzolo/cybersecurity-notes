@@ -14,23 +14,26 @@ linked anywhere, but were once crawled and archived by the Wayback Machine —
 a common source of information disclosure (leaked configs, backups,
 credentials, etc.).
 
+<PageVariables vars={{ target: "domain.com" }} />
+
 ## Step 1 — Pull every archived URL under the domain
 
-<CommandInput
-  vars={{ domain: "domain.com" }}
-  command={`https://web.archive.org/cdx/search/cdx?url=*.{{domain}}/*&collapse=urlkey&output=text&fl=original`}
+<PageCommand
+  command={`https://web.archive.org/cdx/search/cdx?url=*.{{target}}/*&collapse=urlkey&output=text&fl=original`}
   lang="text"
 />
 
 Or via curl:
 
-<CommandInput
-  vars={{ domain: "domain.com" }}
+<PageCommand
+  derivedVars={{
+    filename: { from: "target", template: "wayback_{value}.txt", shared: true },
+  }}
   command={`curl -G "https://web.archive.org/cdx/search/cdx" \\
-  --data-urlencode "url=*.{{domain}}/*" \\
+  --data-urlencode "url=*.{{target}}/*" \\
   --data-urlencode "collapse=urlkey" \\
   --data-urlencode "output=text" \\
-  --data-urlencode "fl=original" > web-archive.txt`}
+  --data-urlencode "fl=original" > {{filename}}`}
 />
 
 <Callout type="info">
@@ -47,9 +50,15 @@ Or via curl:
 
 ## Step 2 — Filter to interesting file types
 
-```bash
-cat web-archive.txt | uro | grep -E '\.xls|\.xml|\.xlsx|\.json|\.pdf|\.sql|\.doc|\.docx|\.pptx|\.txt|\.zip|\.tar\.gz|\.tgz|\.bak|\.7z|\.rar|\.log|\.cache|\.secret|\.db|\.backup|\.yml|\.gz|\.config|\.csv|\.yaml|\.md|\.md5|\.exe|\.dll|\.bin|\.ini|\.bat|\.sh|\.tar|\.deb|\.rpm|\.iso|\.img|\.apk|\.msi|\.dmg|\.tmp|\.crt|\.pem|\.key|\.pub|\.asc'
-```
+<PageCommand
+  derivedVars={{
+    interesting_filename: {
+      from: "target",
+      template: "wayback-interesting_{value}.txt",
+    },
+  }}
+  command={`cat {{filename}} | uro | grep -E '\\.xls|\\.xml|\\.xlsx|\\.json|\\.pdf|\\.sql|\\.doc|\\.docx|\\.pptx|\\.txt|\\.zip|\\.tar\\.gz|\\.tgz|\\.bak|\\.7z|\\.rar|\\.log|\\.cache|\\.secret|\\.db|\\.backup|\\.yml|\\.gz|\\.config|\\.csv|\\.yaml|\\.md|\\.md5|\\.exe|\\.dll|\\.bin|\\.ini|\\.bat|\\.sh|\\.tar|\\.deb|\\.rpm|\\.iso|\\.img|\\.apk|\\.msi|\\.dmg|\\.tmp|\\.crt|\\.pem|\\.key|\\.pub|\\.asc' > {{interesting_filename}}`}
+/>
 
 | Part | Meaning |
 | --- | --- |

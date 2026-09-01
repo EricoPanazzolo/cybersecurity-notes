@@ -18,7 +18,11 @@ IP.
 
 #### Quick WHOIS from terminal
 
-<CommandInput vars={{ domain: "domain.com" }} command={`whois {{domain}}`} />
+<CommandInput
+  vars={{ domain: "domain.com" }}
+  derivedVars={{ filename: { from: "domain", template: "whois_{value}.txt" } }}
+  command={`whois {{domain}} > {{filename}}`}
+/>
 
 See [Domains](/docs/network-cert-intel/domains) and
 [IP](/docs/network-cert-intel/ip) for other domain/host intelligence covered

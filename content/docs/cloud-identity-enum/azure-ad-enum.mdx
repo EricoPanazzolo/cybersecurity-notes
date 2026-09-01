@@ -57,7 +57,8 @@ same check tools like MSOLSpray, o365creeper, and AADInternals'
 
 <CommandInput
   vars={{ email: "user@target-domain.com" }}
-  command={`curl -s "https://login.microsoftonline.com/getuserrealm.srf?login={{email}}&xml=1"`}
+  derivedVars={{ filename: { from: "email", template: "azuread-realm_{value}.txt" } }}
+  command={`curl -s "https://login.microsoftonline.com/getuserrealm.srf?login={{email}}&xml=1" > {{filename}}`}
 />
 
 **What it does:** queries the legacy "user realm" endpoint that Microsoft's
@@ -101,9 +102,10 @@ is the technique o365creeper, MSOLSpray, and AADInternals'
 
 <CommandInput
   vars={{ email: "user@target-domain.com" }}
+  derivedVars={{ filename: { from: "email", template: "azuread-credtype_{value}.txt" } }}
   command={`curl -s -X POST "https://login.microsoftonline.com/common/GetCredentialType" \\
   -H "Content-Type: application/json" \\
-  -d '{"Username":"{{email}}"}' | jq '.IfExistsResult, .ThrottleStatus'`}
+  -d '{"Username":"{{email}}"}' | jq '.IfExistsResult, .ThrottleStatus' > {{filename}}`}
 />
 
 **What it does:**
@@ -160,8 +162,9 @@ supported auth flows.
 
 <CommandInput
   vars={{ target_domain: "target-domain.com" }}
+  derivedVars={{ filename: { from: "target_domain", template: "azuread-oidc_{value}.txt" } }}
   command={`curl -s "https://login.microsoftonline.com/{{target_domain}}/.well-known/openid-configuration" \\
-| jq '.issuer, .authorization_endpoint'`}
+| jq '.issuer, .authorization_endpoint' > {{filename}}`}
 />
 
 **What it does:** hits Microsoft's standard OIDC discovery endpoint. The
@@ -201,9 +204,10 @@ tenant using Microsoft's own pre-consented first-party client IDs.
     target_domain: "target-domain.com",
     client_id: "04b07795-8ddb-461a-bbee-02f9e1bff005",
   }}
+  derivedVars={{ filename: { from: "target_domain", template: "azuread-devicecode_{value}.txt" } }}
   command={`curl -s -X POST "https://login.microsoftonline.com/{{target_domain}}/oauth2/v2.0/devicecode" \\
   -d "client_id={{client_id}}" \\
-  -d "scope=https://graph.microsoft.com/.default offline_access"`}
+  -d "scope=https://graph.microsoft.com/.default offline_access" > {{filename}}`}
 />
 
 **What it does:**

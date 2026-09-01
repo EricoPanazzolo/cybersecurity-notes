@@ -70,7 +70,7 @@ mistaken for one tool's reference:
 | Web Application Vulnerabilities | Nuclei, CORS (Corsy), Code injection probe, LFI |
 | Network & Certificate Intelligence | Cipher Suites, Certificates, Whois, IP, Domains |
 | Reverse Shells & Payloads (`content/docs/reverse-shells/`) | Reverse shell one-liner generator |
-| Playbooks & Workflows (`content/docs/playbooks/`) | Fuzzing & scanning pipeline (Chaos→HTTPX→Naabu→Nmap), Subdirectory enumeration decision guide, CORS mass hunting, HTTrack+TruffleHog, Wayback+uro archived-file discovery |
+| Playbooks & Workflows (`content/docs/playbooks/`) | Fuzzing & scanning pipeline (Chaos→HTTPX→Naabu→Nmap), Nmap→HTML report (nmap2html), Subdirectory enumeration decision guide, CORS mass hunting, HTTrack+TruffleHog, Wayback+uro archived-file discovery |
 | AI Prompts (`content/docs/ai-prompts/`) | Prompt techniques for using AI coding assistants in security work |
 
 A playbook whose commands substantially duplicate an existing tool page
@@ -112,9 +112,21 @@ command, flag, or link that wasn't in the source.
    `app/docs/[[...slug]]/page.tsx`) — not a Fumadocs feature. Keep
    `<CommandInput>` for a one-off command or one needing its own
    independent value.
-7. Playbooks go under `content/docs/playbooks/` with the `<Callout
+7. For a command that saves output to a file, add a `derivedVars` field
+   instead of hardcoding the filename — it tracks another field's live
+   value (via `lib/sanitize-filename.ts`, which strips URL schemes/paths)
+   until the reader edits the derived field directly:
+   `derivedVars={{ filename: { from: "domain", template: "toolname_{value}.ext" } }}`.
+   Naming convention: `<toolname>_{value}.<ext>`, or
+   `<toolname>-<mode>_{value}.<ext>` for a page covering more than one
+   mode/technique. `<PageCommand>` also accepts `localVars` (same shape as
+   `<CommandInput>`'s `vars`) for a plain field local to one block only.
+   Skip this when a later command on the same page consumes that hardcoded
+   filename (a multi-step playbook) — making it dynamic there desyncs the
+   chain unless every step references the same variable.
+8. Playbooks go under `content/docs/playbooks/` with the `<Callout
    type="info" title="Playbook">` intro described above.
-8. Run `npm run build` before committing.
+9. Run `npm run build` before committing.
 
 ### Theme
 

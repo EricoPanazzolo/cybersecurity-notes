@@ -7,25 +7,32 @@ description: In-depth subdomain enumeration and passive reconnaissance.
 reconnaissance by aggregating data from certificate transparency logs, DNS
 records, web archives, and other open sources.
 
+<PageVariables vars={{ target: "domain.com" }} />
+
 ## Enumerate subdomains, filter to valid ones
 
-<CommandInput
-  vars={{ domain: "domain.com" }}
-  command={`amass enum -passive -d {{domain}} | grep -oE '([a-zA-Z0-9_-]+\\.)+{{domain}}' > amass.txt`}
+<PageCommand
+  derivedVars={{
+    filename: { from: "target", template: "amass_{value}.txt", shared: true },
+  }}
+  command={`amass enum -passive -d {{target}} | grep -oE '([a-zA-Z0-9_-]+\\.)+{{target}}' > {{filename}}`}
 />
 
 | Part | Meaning |
 | --- | --- |
 | `enum` | Subcommand: run subdomain enumeration. |
 | `-passive` | Only use passive data sources — no direct DNS queries or probing against the target itself (stealthier, faster, but may miss some hosts). |
-| `-d <domain>` | Target root domain. |
+| `-d <target>` | Target root domain. |
 | `grep -oE '(...)+domain\.com'` | Regex cleanup pass to strip out any non-hostname noise from Amass's output, keeping only lines that look like `*.domain.com`. |
 
 ## Check which discovered subdomains are actually alive
 
-```bash
-cat amass.txt | httpx -silent > live.txt
-```
+<PageCommand
+  derivedVars={{
+    live_filename: { from: "target", template: "amass-live_{value}.txt" },
+  }}
+  command={`cat {{filename}} | httpx -silent > {{live_filename}}`}
+/>
 
 | Flag | Meaning |
 | --- | --- |

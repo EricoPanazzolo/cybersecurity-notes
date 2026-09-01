@@ -11,7 +11,8 @@ which can expose or allow tampering with an app's entire backend data.
 
 <CommandInput
   vars={{ keyword: "company" }}
-  command={`python3 firebaseEnum.py -k {{keyword}}`}
+  derivedVars={{ filename: { from: "keyword", template: "firebaseenum_{value}.txt" } }}
+  command={`python3 firebaseEnum.py -k {{keyword}} > {{filename}}`}
 />
 
 ## Flag reference

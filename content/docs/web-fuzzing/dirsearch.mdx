@@ -11,14 +11,16 @@ on a web server, with built-in recursion and response filtering.
 
 <CommandInput
   vars={{ url: "https://target.com" }}
-  command={`dirsearch -u {{url}} -t <THREAD_NUMBER> -x <STATUS_CODE_FILTER> -r`}
+  derivedVars={{ filename: { from: "url", template: "dirsearch_{value}.txt" } }}
+  command={`dirsearch -u {{url}} -t <THREAD_NUMBER> -x <STATUS_CODE_FILTER> -r -o {{filename}}`}
 />
 
 ## Example (from original notes)
 
 <CommandInput
   vars={{ url: "https://target.com" }}
-  command={`dirsearch -u {{url}} -t 120 -x 400,404,403 -r -w /usr/share/wordlists/SecLists/Discovery/Web-Content/directory-list-2.3-big.txt`}
+  derivedVars={{ filename: { from: "url", template: "dirsearch_{value}.txt" } }}
+  command={`dirsearch -u {{url}} -t 120 -x 400,404,403 -r -w /usr/share/wordlists/SecLists/Discovery/Web-Content/directory-list-2.3-big.txt -o {{filename}}`}
 />
 
 ## Flag reference

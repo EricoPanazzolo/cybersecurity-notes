@@ -14,7 +14,8 @@ keyword (e.g. `target-name-backup`, `target-name-dev`, `target-name-prod`).
 
 <CommandInput
   vars={{ keyword1: "target-name", keyword2: "target-com" }}
-  command={`cloud_enum -k {{keyword1}} -k {{keyword2}}`}
+  derivedVars={{ filename: { from: "keyword1", template: "cloud_enum_{value}.txt" } }}
+  command={`cloud_enum -k {{keyword1}} -k {{keyword2}} > {{filename}}`}
 />
 
 ## Flag reference
