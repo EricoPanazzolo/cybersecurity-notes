@@ -26,5 +26,11 @@ vulnerabilities (e.g. Heartbleed, POODLE). Grades the result A–F.
   placeholderMode
 />
 
+| Flag | Meaning |
+| --- | --- |
+| `--script ssl-enum-ciphers` | Nmap NSE script that enumerates supported TLS versions and cipher suites, and grades their strength. |
+| `-p 443` | Port to scan — HTTPS by default; change if TLS is served elsewhere. |
+| `-oN <file>` | Save results in Nmap's normal (human-readable) output format. |
+
 See [Certificates](/docs/network-cert-intel/certificates) for inspecting the
 certificate itself (chain, expiry, SANs) rather than the negotiated ciphers.

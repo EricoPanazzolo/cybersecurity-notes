@@ -1,0 +1,43 @@
+---
+title: FFUF (Subdomain Mode)
+description: Active subdomain fuzzing via FFUF's FUZZ keyword.
+---
+
+**FFUF**'s subdomain fuzzing replaces the `Host` header/vhost portion of a
+request with the `FUZZ` keyword and brute-forces it against a wordlist. See
+the [FFUF page](/docs/web-fuzzing/ffuf) for the tool's directory/file
+fuzzing mode and content-based filtering, which share the same binary and
+general flag style.
+
+## Subdomain fuzzing
+
+<CommandInput
+  vars={{ domain: "domain.com" }}
+  derivedVars={{ output: { from: "domain", template: "ffuf-subdomain_{value}.txt" } }}
+  command={`ffuf -u "https://FUZZ.{{domain}}" \\
+  -w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-5000.txt \\
+  -mc 200,204,301,302,307,401,403 \\
+  -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0" \\
+  -t 60 --rate 100 | \\
+  awk '{print $1".{{domain}}"}' > {{output}}`}
+  placeholderMode
+/>
+
+## Flag reference
+
+| Flag | Meaning |
+| --- | --- |
+| `-u <url>` | Target URL; `FUZZ` marks the injection point (here, the subdomain). |
+| `-w <wordlist>` | Wordlist to fuzz with. |
+| `-mc <codes>` | Match responses with these status codes only. |
+| `-H "<header>"` | Add a custom header — here, spoofing a normal browser User-Agent to reduce the chance of being blocked/fingerprinted. |
+| `-t <n>` | Number of concurrent threads. |
+| `--rate <n>` | Max requests per second (rate limiting to avoid tripping WAFs/lockouts). |
+
+<Callout type="warn">
+  Wildcard DNS (where every subdomain resolves to the same host) produces
+  false positives — verify hits actually resolve to something legitimate
+  before treating them as real subdomains. Spoofing a common browser
+  User-Agent (as in the example) can help avoid basic bot-blocking, but
+  isn't a substitute for staying within rate limits.
+</Callout>

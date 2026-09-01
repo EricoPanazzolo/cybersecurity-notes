@@ -33,6 +33,12 @@ the response.
   placeholderMode
 />
 
+| Flag | Meaning |
+| --- | --- |
+| `-s` | Silent — suppress curl's progress meter. |
+| `-H "Origin: <origin>"` | Sends a crafted `Origin` header, as if the request came from another site — the core of the manual CORS test. |
+| `-I` | HEAD request — only fetch response headers, not the body (faster, and all that's needed here). |
+
 Check the response headers:
 
 | Header | Red flag if... |

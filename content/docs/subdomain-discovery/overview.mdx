@@ -25,7 +25,7 @@ to a target domain, expanding the attack surface beyond the main site.
 - **[Amass](/docs/subdomain-discovery/amass)** — passive enumeration via public sources.
 - **[Gobuster (DNS mode)](/docs/subdomain-discovery/gobuster-dns)** — active brute-force via wordlist.
 - **[BBOT](/docs/subdomain-discovery/bbot)** — automated pipeline combining both passive sources and active brute-force (`cloud-enum` preset).
-- **[FFUF](/docs/web-fuzzing/ffuf) (subdomain fuzzing)** — active brute-force via `Host` header/vhost `FUZZ`.
+- **[FFUF (Subdomain Mode)](/docs/subdomain-discovery/ffuf-subdomain)** — active brute-force via `Host` header/vhost `FUZZ`.
 
 <Callout type="info">
   The original Notion page also referenced a "SCRIPT page" covering
@@ -42,6 +42,14 @@ to a target domain, expanding the attack surface beyond the main site.
   command={`curl -s "https://crt.sh/?q=%25.{{domain}}&output=json" | jq -r '.[].name_value' | sort -u > {{output}}`}
   placeholderMode
 />
+
+| Flag | Meaning |
+| --- | --- |
+| `-s` | Silent — suppress curl's progress meter. |
+| `q=%25.domain.com` | crt.sh query param; `%25` is a URL-encoded `%`, so this matches any certificate issued for `*.domain.com`. |
+| `output=json` | Return results as JSON instead of crt.sh's default HTML page. |
+| `jq -r '.[].name_value'` | Extract just the `name_value` (hostname) field from each result, unquoted. |
+| `sort -u` | Sort and deduplicate the hostnames. |
 
 Queries certificate transparency logs ([crt.sh](https://crt.sh)) for any
 certificate ever issued containing `*.domain.com`, and prints the unique

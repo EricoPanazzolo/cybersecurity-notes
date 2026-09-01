@@ -18,6 +18,12 @@ hostnames or related infrastructure not advertised anywhere else.
   placeholderMode
 />
 
+| Flag | Meaning |
+| --- | --- |
+| `s_client` | Subcommand: connect to a server as a TLS/SSL client and print the handshake/certificate details. |
+| `-connect <host>:443` | Host and port to connect to. |
+| `-servername <domain>` | Sends SNI (Server Name Indication) — required to get the right certificate from hosts serving multiple domains off one IP (virtual hosting, CDNs). |
+
 <Callout type="info">
   [Censys Search](/docs/network-cert-intel/ip) also indexes certificates
   across the internet — useful for finding every host presenting a specific

@@ -17,6 +17,14 @@ versions), and the operating system in use.
   placeholderMode
 />
 
+| Flag | Meaning |
+| --- | --- |
+| `-sV` | **Version detection** — probes open ports to determine the service and its version. |
+| `-sC` | **Default scripts** — runs Nmap's default NSE script set (`--script=default`) for extra enumeration (banners, common misconfigurations, etc.). |
+| `-A` | **Aggressive scan** — enables OS detection, version detection, script scanning, and traceroute together. Noisy but thorough. |
+| `<target>` | Target IP, hostname, or CIDR range to scan. |
+| `-oX <file>` | Saves output as XML only (useful for feeding into other tools, e.g. nmap2html). |
+
 <Callout type="info">
   The output saves in XML format for feeding into other tools — see the
   [Nmap → HTML Report (nmap2html)](/docs/playbooks/nmap2html-report)
@@ -31,22 +39,15 @@ versions), and the operating system in use.
   placeholderMode
 />
 
-## Flag reference
-
 | Flag | Meaning |
 | --- | --- |
-| `-sV` | **Version detection** — probes open ports to determine the service and its version. |
-| `-sC` | **Default scripts** — runs Nmap's default NSE script set (`--script=default`) for extra enumeration (banners, common misconfigurations, etc.). |
-| `-A` | **Aggressive scan** — enables OS detection, version detection, script scanning, and traceroute together. Noisy but thorough. |
-| `-oX <file>` | Saves output as XML only (useful for feeding into other tools, e.g. nmap2html). |
 | `-iL <file>` | Read targets from a file (one host/IP/CIDR per line) instead of a single target on the command line. |
-| `-p-` | Scans all 65,535 ports instead of the default top 1000. |
-| `<target>` | Target IP, hostname, or CIDR range to scan. |
 
 <Callout type="warn">
   `-A` sends more probes/scripts and is easier for an IDS/IPS to flag — use a
-  lighter scan first if stealth matters. Pair with `-p-` when you need full
-  port coverage, not just the common ones.
+  lighter scan first if stealth matters. Pair with `-p-` (scans all 65,535
+  ports instead of the default top 1000) when you need full port coverage,
+  not just the common ones.
 </Callout>
 
 See the [Fuzzing & Scanning Pipeline](/docs/playbooks/fuzzing-scanning-pipeline)

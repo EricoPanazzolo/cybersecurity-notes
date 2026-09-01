@@ -63,9 +63,9 @@ mistaken for one tool's reference:
 | Category | Contents |
 | --- | --- |
 | Wordlists & Resources | SecLists, Alterx |
-| Subdomain & Attack Surface Discovery | Overview, Amass, BBOT, Gobuster (DNS mode) |
+| Subdomain & Attack Surface Discovery | Overview, Amass, BBOT, Gobuster (DNS mode), FFUF (subdomain mode) |
 | Port & Service Scanning | Nmap |
-| Web Content & Directory Fuzzing | Gobuster (dir mode), Dirsearch, FFUF |
+| Web Content & Directory Fuzzing | Gobuster (dir mode), Dirsearch, FFUF (dir mode) |
 | Cloud & Identity Enumeration | Azure AD / Entra ID enumeration, Bucket enumeration, Firebase enumeration |
 | Web Application Vulnerabilities | Nuclei, CORS (Corsy), Code injection probe, LFI |
 | Network & Certificate Intelligence | Cipher Suites, Certificates, Whois, IP, Domains |
