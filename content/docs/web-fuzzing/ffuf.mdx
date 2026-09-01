@@ -18,6 +18,7 @@ with the `FUZZ` keyword and brute-forced against a wordlist.
   -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0" \\
   -t 60 --rate 100 | \\
   awk '{print $1".{{domain}}"}' > {{output}}`}
+  placeholderMode
 />
 
 ## Directory / sub-path fuzzing
@@ -31,6 +32,7 @@ with the `FUZZ` keyword and brute-forced against a wordlist.
   -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0" \\
   -t 60 --rate 100 | \\
   awk '{print "https://{{domain}}/"$1}' > {{output}}`}
+  placeholderMode
 />
 
 ## Content-based filtering (instead of status/length)
@@ -42,6 +44,7 @@ with the `FUZZ` keyword and brute-forced against a wordlist.
   -w /usr/share/wordlists/dirb/big.txt \\
   -fr "{{filter_text}}" \\
   -o {{output}} -of json`}
+  placeholderMode
 />
 
 `"was not found on this server"` here is the literal string pulled from the

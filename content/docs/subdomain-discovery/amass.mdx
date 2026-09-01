@@ -15,6 +15,7 @@ records, web archives, and other open sources.
     output: { from: "target", template: "amass_{value}.txt" },
   }}
   command={`amass enum -passive -d {{target}} | grep -oE '([a-zA-Z0-9_-]+\\.)+{{target}}' > {{output}}`}
+  placeholderMode
 />
 
 | Part | Meaning |
@@ -36,6 +37,7 @@ change either away from the default.
     output: { from: "target", template: "amass-live_{value}.txt" },
   }}
   command={`cat {{input}} | httpx -silent > {{output}}`}
+  placeholderMode
 />
 
 | Flag | Meaning |

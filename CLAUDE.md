@@ -99,12 +99,26 @@ command, flag, or link that wasn't in the source.
    actually verified — never fabricate a URL.
 5. For a copy-run command that needs a target-specific value (domain,
    target URL, email, client ID, ...), use `<CommandInput vars={{ name:
-   "default" }} command={\`... {{name}} ...\`} />` (`components/command-input.tsx`,
-   registered in `components/mdx.tsx`) instead of a plain fenced code block —
-   it renders one input per `{{name}}` placeholder and re-highlights the
-   command live via Fumadocs' `DynamicCodeBlock`. Placeholder names must
-   match `\w+` (no hyphens). Don't use it for illustrative/non-runnable
-   examples or compact snippets inside a table.
+   "default" }} command={\`... {{name}} ...\`} placeholderMode />`
+   (`components/command-input.tsx`, registered in `components/mdx.tsx`)
+   instead of a plain fenced code block — it renders one input per
+   `{{name}}` placeholder and re-highlights the command live via
+   Fumadocs' `DynamicCodeBlock`. Placeholder names must match `\w+` (no
+   hyphens). Don't use it for illustrative/non-runnable examples or
+   compact snippets inside a table. Always pass `placeholderMode` (site
+   convention as of the Nmap-page rollout): fields start empty, showing
+   their default as grey placeholder text, and the command shows a
+   `<name>` token (`<input-file>`/`<output-file>` for those two roles,
+   bare `<name>` otherwise — see `placeholderToken()`) for any field not
+   yet filled in, instead of silently substituting the default. Filling
+   in every field (or clicking **Apply**, which commits the current
+   value of every field — typed or still-default — into the command,
+   including derived fields never directly touched) switches the
+   command to the fully-substituted live version; **Reset** clears back
+   to the empty/placeholder state. Both buttons carry a themed
+   `<Tooltip>` (`components/tooltip.tsx`) explaining what they do —
+   don't use the native `title` attribute for this, it looks out of
+   place next to the rest of the design.
 6. There is no shared/pinned page-level state — every `<CommandInput>` is
    self-contained. When several command blocks on one page logically use
    the same value (e.g. `target` across three commands, or one playbook

@@ -14,7 +14,8 @@ style.
 <CommandInput
   vars={{ domain: "domain.com" }}
   derivedVars={{ output: { from: "domain", template: "gobuster-dns_{value}.txt" } }}
-  command={`gobuster dns -d {{domain}} -w /usr/share/SecLists/Discovery/DNS/subdomains-top1million-110000.txt -o {{output}}`}
+  command={`gobuster dns -d {{domain}} -w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-110000.txt -o {{output}}`}
+  placeholderMode
 />
 
 ## Flag reference

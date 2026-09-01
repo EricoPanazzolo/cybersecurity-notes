@@ -27,6 +27,7 @@ check or when you just want the findings, nothing else.
   vars={{ target: "https://target.com" }}
   derivedVars={{ output: { from: "target", template: "nuclei-simple_{value}.txt" } }}
   command={`nuclei -u {{target}} -silent -o {{output}}`}
+  placeholderMode
 />
 
 | Flag | Meaning |
@@ -44,6 +45,7 @@ scan.
   vars={{ target: "https://target.com" }}
   derivedVars={{ output: { from: "target", template: "nuclei-verbose_{value}.txt" } }}
   command={`nuclei -u {{target}} -v -stats -o {{output}}`}
+  placeholderMode
 />
 
 | Flag | Meaning |
@@ -68,6 +70,7 @@ option — expect it to take a while and generate real traffic.
   -severity low,medium,high,critical \\
   -c 50 -rl 150 \\
   -j -o {{output}}`}
+  placeholderMode
 />
 
 | Flag | Meaning |

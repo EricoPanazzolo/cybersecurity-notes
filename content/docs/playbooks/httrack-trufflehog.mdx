@@ -29,6 +29,7 @@ rewrites links so the site can be browsed offline. Useful for:
     output: { from: "target", template: "httrack_{value}" },
   }}
   command={`httrack https://{{target}} -O {{output}}`}
+  placeholderMode
 />
 
 | Flag | Meaning |
@@ -47,6 +48,7 @@ both if you change either away from the default.
 <CommandInput
   vars={{ input: "httrack_domain.com" }}
   command={`trufflehog filesystem {{input}} --results=verified,unverified --json`}
+  placeholderMode
 />
 
 <Callout type="info">

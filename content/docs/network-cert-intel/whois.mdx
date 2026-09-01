@@ -22,6 +22,7 @@ IP.
   vars={{ domain: "domain.com" }}
   derivedVars={{ output: { from: "domain", template: "whois_{value}.txt" } }}
   command={`whois {{domain}} > {{output}}`}
+  placeholderMode
 />
 
 See [Domains](/docs/network-cert-intel/domains) and

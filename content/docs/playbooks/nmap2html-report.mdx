@@ -21,6 +21,7 @@ description: Turn an Nmap XML scan into a self-contained, interactive HTML repor
 <CommandInput
   vars={{ target: "10.10.10.10", output: "nmap_10.10.10.10.xml" }}
   command={`nmap -sV -sC -A {{target}} -oX {{output}}`}
+  placeholderMode
 />
 
 `-oX` is required — nmap2html only reads Nmap's XML output, not the
@@ -39,6 +40,7 @@ either away from the default.
 <CommandInput
   vars={{ input: "nmap_10.10.10.10.xml" }}
   command={`python3 nmap2html.py {{input}}`}
+  placeholderMode
 />
 
 By default this writes `<name>.html` next to the input file, plus
@@ -48,6 +50,7 @@ file instead:
 <CommandInput
   vars={{ input: "nmap_10.10.10.10.xml", output: "assessment.html" }}
   command={`python3 nmap2html.py {{input}} -o {{output}}`}
+  placeholderMode
 />
 
 ## What you get

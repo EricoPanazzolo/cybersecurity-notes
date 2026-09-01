@@ -21,6 +21,7 @@ asset discovery and finding shadow IT.
   vars={{ target_domain: "example.com" }}
   command={`(({{target_domain}}) and not (host.services.software.vendor = "cloudflare" or web.software.vendor = "cloudflare")) and host.ip: *`}
   lang="text"
+  placeholderMode
 />
 
 **What it does:**

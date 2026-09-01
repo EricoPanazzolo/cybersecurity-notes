@@ -20,6 +20,7 @@ credentials, etc.).
   vars={{ target: "domain.com" }}
   command={`https://web.archive.org/cdx/search/cdx?url=*.{{target}}/*&collapse=urlkey&output=text&fl=original`}
   lang="text"
+  placeholderMode
 />
 
 Or via curl:
@@ -34,6 +35,7 @@ Or via curl:
   --data-urlencode "collapse=urlkey" \\
   --data-urlencode "output=text" \\
   --data-urlencode "fl=original" > {{output}}`}
+  placeholderMode
 />
 
 <Callout type="info">
@@ -63,6 +65,7 @@ away from the default.
     },
   }}
   command={`cat {{input}} | uro | grep -E '\\.xls|\\.xml|\\.xlsx|\\.json|\\.pdf|\\.sql|\\.doc|\\.docx|\\.pptx|\\.txt|\\.zip|\\.tar\\.gz|\\.tgz|\\.bak|\\.7z|\\.rar|\\.log|\\.cache|\\.secret|\\.db|\\.backup|\\.yml|\\.gz|\\.config|\\.csv|\\.yaml|\\.md|\\.md5|\\.exe|\\.dll|\\.bin|\\.ini|\\.bat|\\.sh|\\.tar|\\.deb|\\.rpm|\\.iso|\\.img|\\.apk|\\.msi|\\.dmg|\\.tmp|\\.crt|\\.pem|\\.key|\\.pub|\\.asc' > {{output}}`}
+  placeholderMode
 />
 
 | Part | Meaning |

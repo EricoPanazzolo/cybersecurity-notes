@@ -15,6 +15,7 @@ hostnames or related infrastructure not advertised anywhere else.
   vars={{ domain: "domain.com" }}
   derivedVars={{ output: { from: "domain", template: "openssl-cert_{value}.txt" } }}
   command={`openssl s_client -connect {{domain}}:443 -servername {{domain}} > {{output}}`}
+  placeholderMode
 />
 
 <Callout type="info">

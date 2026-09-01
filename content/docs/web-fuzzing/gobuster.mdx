@@ -18,7 +18,8 @@ entry in a wordlist against the target.
 <CommandInput
   vars={{ website: "https://target.com" }}
   derivedVars={{ output: { from: "website", template: "gobuster-dir_{value}.txt" } }}
-  command={`gobuster dir -u {{website}} -w /usr/share/SecLists/Discovery/Web-Content/directory-list-2.3-medium.txt -o {{output}}`}
+  command={`gobuster dir -u {{website}} -w /usr/share/wordlists/SecLists/Discovery/Web-Content/directory-list-2.3-medium.txt -o {{output}}`}
+  placeholderMode
 />
 
 ## Flag reference

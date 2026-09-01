@@ -16,6 +16,7 @@ keyword (e.g. `target-name-backup`, `target-name-dev`, `target-name-prod`).
   vars={{ keyword1: "target-name", keyword2: "target-com" }}
   derivedVars={{ output: { from: "keyword1", template: "cloud_enum_{value}.txt" } }}
   command={`cloud_enum -k {{keyword1}} -k {{keyword2}} > {{output}}`}
+  placeholderMode
 />
 
 ## Flag reference

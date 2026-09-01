@@ -13,6 +13,7 @@ on a web server, with built-in recursion and response filtering.
   vars={{ url: "https://target.com" }}
   derivedVars={{ output: { from: "url", template: "dirsearch_{value}.txt" } }}
   command={`dirsearch -u {{url}} -t <THREAD_NUMBER> -x <STATUS_CODE_FILTER> -r -o {{output}}`}
+  placeholderMode
 />
 
 ## Example (from original notes)
@@ -21,6 +22,7 @@ on a web server, with built-in recursion and response filtering.
   vars={{ url: "https://target.com" }}
   derivedVars={{ output: { from: "url", template: "dirsearch_{value}.txt" } }}
   command={`dirsearch -u {{url}} -t 120 -x 400,404,403 -r -w /usr/share/wordlists/SecLists/Discovery/Web-Content/directory-list-2.3-big.txt -o {{output}}`}
+  placeholderMode
 />
 
 ## Flag reference

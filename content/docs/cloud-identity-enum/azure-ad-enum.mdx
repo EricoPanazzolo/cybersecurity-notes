@@ -59,6 +59,7 @@ same check tools like MSOLSpray, o365creeper, and AADInternals'
   vars={{ email: "user@target-domain.com" }}
   derivedVars={{ output: { from: "email", template: "azuread-realm_{value}.txt" } }}
   command={`curl -s "https://login.microsoftonline.com/getuserrealm.srf?login={{email}}&xml=1" > {{output}}`}
+  placeholderMode
 />
 
 **What it does:** queries the legacy "user realm" endpoint that Microsoft's
@@ -106,6 +107,7 @@ is the technique o365creeper, MSOLSpray, and AADInternals'
   command={`curl -s -X POST "https://login.microsoftonline.com/common/GetCredentialType" \\
   -H "Content-Type: application/json" \\
   -d '{"Username":"{{email}}"}' | jq '.IfExistsResult, .ThrottleStatus' > {{output}}`}
+  placeholderMode
 />
 
 **What it does:**
@@ -165,6 +167,7 @@ supported auth flows.
   derivedVars={{ output: { from: "target_domain", template: "azuread-oidc_{value}.txt" } }}
   command={`curl -s "https://login.microsoftonline.com/{{target_domain}}/.well-known/openid-configuration" \\
 | jq '.issuer, .authorization_endpoint' > {{output}}`}
+  placeholderMode
 />
 
 **What it does:** hits Microsoft's standard OIDC discovery endpoint. The
@@ -208,6 +211,7 @@ tenant using Microsoft's own pre-consented first-party client IDs.
   command={`curl -s -X POST "https://login.microsoftonline.com/{{target_domain}}/oauth2/v2.0/devicecode" \\
   -d "client_id={{client_id}}" \\
   -d "scope=https://graph.microsoft.com/.default offline_access" > {{output}}`}
+  placeholderMode
 />
 
 **What it does:**
