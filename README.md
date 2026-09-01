@@ -82,15 +82,17 @@ for a single tool's reference, so they're split into dedicated sections:
 | Web Application Vulnerabilities | Nuclei, CORS (Corsy), Code injection probe, LFI |
 | Network & Certificate Intelligence | Cipher Suites, Certificates, Whois, IP, Domains |
 | **Reverse Shells & Payloads** | Reverse shell one-liner generator (IP + port → every language's payload) |
-| **Playbooks & Workflows** | Fuzzing & scanning pipeline (Chaos→HTTPX→Naabu→Nmap), Nmap→HTML report (nmap2html), Subdirectory enumeration decision guide, CORS mass hunting, HTTrack+TruffleHog, Wayback+uro archived-file discovery |
+| **Playbooks & Workflows** | Fuzzing & scanning pipeline (Chaos→HTTPX→Naabu→Nmap), Nmap→HTML report (nmap2html), CORS mass hunting, HTTrack+TruffleHog, Wayback+uro archived-file discovery |
 | **AI Prompts** | Prompt techniques for using AI coding assistants in security work (e.g. auditing vibe-coded apps) |
 
-Pages whose commands substantially duplicate another page's (e.g. the
-Subdirectory Enumeration and CORS mass-hunting playbooks, which mostly
-re-run Gobuster/FFUF/Corsy commands already documented on their own pages)
-carry an explicit `<Callout>` flagging them as decision guides and linking
-back to the canonical tool page, instead of re-documenting the same flags
-twice. Every playbook page also opens with a `<Callout type="info"
+Pages whose commands would substantially duplicate another page's (e.g. a
+guide that mostly re-runs Gobuster/FFUF/Corsy commands already documented on
+their own pages) point back to the canonical tool page instead of
+re-documenting the same flags twice — the CORS mass-hunting playbook does
+this for Corsy's usage. A page with nothing left but such pointers is
+removed rather than kept as a stub (this reference previously had, and
+removed, a "Subdirectory Enumeration" decision guide for exactly this
+reason). Every playbook page opens with a `<Callout type="info"
 title="Playbook">` naming the tools it chains and linking to each one's
 page.
 

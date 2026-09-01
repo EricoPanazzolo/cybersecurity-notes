@@ -12,6 +12,7 @@ import {
 } from "react";
 import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
 import { sanitizeForFilename } from "@/lib/sanitize-filename";
+import { orderFields } from "@/lib/field-order";
 
 // `useLayoutEffect` commits before paint, avoiding a flash of raw
 // {{placeholder}} text in <PageCommand> while defaults are seeded; falls
@@ -67,7 +68,7 @@ interface PageVariablesProps {
 export function PageVariables({ vars }: PageVariablesProps) {
   const { values, setValue, reset } = usePageVariablesContext();
   const id = useId();
-  const names = Object.keys(vars);
+  const names = orderFields(Object.keys(vars));
 
   // Seed the shared defaults once, so every <PageCommand> below renders
   // filled-in on first paint instead of showing raw {{name}} placeholders.
@@ -138,6 +139,13 @@ interface PageCommandProps {
   derivedVars?: Record<string, DerivedVarConfig>;
   /** Plain vars local to this block only, with their own fixed default (not shared, not derived). */
   localVars?: Record<string, string>;
+  /**
+   * Names of page-shared variables to also expose as an editable field on
+   * this block — reads and writes the same value as every other block (or
+   * `<PageVariables>`) referencing it, so editing it anywhere keeps them
+   * all in sync.
+   */
+  sharedVars?: string[];
 }
 
 export function PageCommand({
@@ -145,6 +153,7 @@ export function PageCommand({
   lang = "bash",
   derivedVars,
   localVars,
+  sharedVars,
 }: PageCommandProps) {
   const { values: pageValues, setValue } = usePageVariablesContext();
   const id = useId();
@@ -154,6 +163,7 @@ export function PageCommand({
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const derived = useMemo(() => derivedVars ?? {}, [derivedVars]);
   const plain = localVars ?? {};
+  const shared = useMemo(() => sharedVars ?? [], [sharedVars]);
   const names = useMemo(
     () =>
       Array.from(new Set(Array.from(command.matchAll(VAR_PATTERN), (m) => m[1]))),
@@ -190,8 +200,8 @@ export function PageCommand({
     command,
   );
 
-  const localFieldNames = Array.from(
-    new Set([...Object.keys(derived), ...Object.keys(plain)]),
+  const localFieldNames = orderFields(
+    Array.from(new Set([...shared, ...Object.keys(derived), ...Object.keys(plain)])),
   );
 
   return (
@@ -210,9 +220,17 @@ export function PageCommand({
                 type="text"
                 value={effectiveValues[name] ?? ""}
                 onChange={(e) => {
-                  setLocalValues((prev) => ({ ...prev, [name]: e.target.value }));
+                  const val = e.target.value;
+                  if (shared.includes(name)) {
+                    setValue(name, val);
+                    return;
+                  }
+                  setLocalValues((prev) => ({ ...prev, [name]: val }));
                   if (derived[name]) {
                     setTouched((prev) => ({ ...prev, [name]: true }));
+                    if (derived[name].shared) {
+                      setValue(name, val);
+                    }
                   }
                 }}
                 placeholder={plain[name]}
@@ -222,6 +240,18 @@ export function PageCommand({
               />
             </label>
           ))}
+          {(Object.keys(derived).length > 0 || Object.keys(plain).length > 0) && (
+            <button
+              type="button"
+              onClick={() => {
+                setLocalValues(localVars ?? {});
+                setTouched({});
+              }}
+              className="ml-auto rounded-md border border-fd-border px-2 py-1 text-xs font-medium text-fd-muted-foreground transition hover:bg-fd-accent hover:text-fd-accent-foreground"
+            >
+              Reset
+            </button>
+          )}
         </div>
       )}
       <DynamicCodeBlock

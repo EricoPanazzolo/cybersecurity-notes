@@ -3,6 +3,7 @@
 import { useId, useMemo, useState } from "react";
 import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
 import { sanitizeForFilename } from "@/lib/sanitize-filename";
+import { orderFields } from "@/lib/field-order";
 
 const VAR_PATTERN = /\{\{(\w+)\}\}/g;
 
@@ -34,10 +35,16 @@ export function CommandInput({
   lang = "bash",
 }: CommandInputProps) {
   const id = useId();
-  const names = useMemo(
-    () => Array.from(new Set(Array.from(command.matchAll(VAR_PATTERN), (m) => m[1]))),
-    [command],
-  );
+  const names = useMemo(() => {
+    const templateNames = new Set(
+      Array.from(command.matchAll(VAR_PATTERN), (m) => m[1]),
+    );
+    const authored = [...Object.keys(vars), ...Object.keys(derivedVars ?? {})].filter(
+      (name, index, arr) => arr.indexOf(name) === index && templateNames.has(name),
+    );
+    const remaining = [...templateNames].filter((name) => !authored.includes(name));
+    return orderFields([...authored, ...remaining]);
+  }, [command, vars, derivedVars]);
   const [values, setValues] = useState<Record<string, string>>(vars);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const derived = useMemo(() => derivedVars ?? {}, [derivedVars]);
@@ -87,6 +94,16 @@ export function CommandInput({
             />
           </label>
         ))}
+        <button
+          type="button"
+          onClick={() => {
+            setValues(vars);
+            setTouched({});
+          }}
+          className="ml-auto rounded-md border border-fd-border px-2 py-1 text-xs font-medium text-fd-muted-foreground transition hover:bg-fd-accent hover:text-fd-accent-foreground"
+        >
+          Reset
+        </button>
       </div>
       <DynamicCodeBlock
         lang={lang}

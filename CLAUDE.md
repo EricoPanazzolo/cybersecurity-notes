@@ -70,16 +70,18 @@ mistaken for one tool's reference:
 | Web Application Vulnerabilities | Nuclei, CORS (Corsy), Code injection probe, LFI |
 | Network & Certificate Intelligence | Cipher Suites, Certificates, Whois, IP, Domains |
 | Reverse Shells & Payloads (`content/docs/reverse-shells/`) | Reverse shell one-liner generator |
-| Playbooks & Workflows (`content/docs/playbooks/`) | Fuzzing & scanning pipeline (Chaos→HTTPX→Naabu→Nmap), Nmap→HTML report (nmap2html), Subdirectory enumeration decision guide, CORS mass hunting, HTTrack+TruffleHog, Wayback+uro archived-file discovery |
+| Playbooks & Workflows (`content/docs/playbooks/`) | Fuzzing & scanning pipeline (Chaos→HTTPX→Naabu→Nmap), Nmap→HTML report (nmap2html), CORS mass hunting, HTTrack+TruffleHog, Wayback+uro archived-file discovery |
 | AI Prompts (`content/docs/ai-prompts/`) | Prompt techniques for using AI coding assistants in security work |
 
-A playbook whose commands substantially duplicate an existing tool page
-(e.g. a decision guide that mostly re-runs Gobuster/FFUF/Corsy commands
-already documented elsewhere) should carry an explicit `<Callout>` flagging
-it as a decision guide and linking back to the canonical tool page, rather
-than re-documenting the same flags twice. Every playbook page opens with a
-`<Callout type="info" title="Playbook">` naming the tools it chains and
-linking to each one's page.
+A playbook whose commands would substantially duplicate an existing tool
+page (e.g. a decision guide that mostly re-runs Gobuster/FFUF/Corsy commands
+already documented elsewhere) should point back to the canonical tool page
+rather than re-documenting the same flags twice — and if it would have
+nothing left but such pointers, remove it instead of keeping it as a stub
+(this happened to a "Subdirectory Enumeration" decision guide once its
+Gobuster/FFUF content moved to their own pages). Every playbook page opens
+with a `<Callout type="info" title="Playbook">` naming the tools it chains
+and linking to each one's page.
 
 If source material is missing (an unrecoverable embedded bookmark, a tool
 mentioned but never given its own page) or wrong (a typo'd flag, an

@@ -3,7 +3,6 @@
   "pages": [
     "fuzzing-scanning-pipeline",
     "nmap2html-report",
-    "subdirectory-enumeration-guide",
     "cors-mass-hunting",
     "httrack-trufflehog",
     "wayback-404-discovery"

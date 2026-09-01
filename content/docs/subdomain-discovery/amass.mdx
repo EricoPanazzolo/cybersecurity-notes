@@ -29,9 +29,9 @@ records, web archives, and other open sources.
 
 <PageCommand
   derivedVars={{
-    live_filename: { from: "target", template: "amass-live_{value}.txt" },
+    filename: { from: "target", template: "amass-live_{value}.txt" },
   }}
-  command={`cat {{filename}} | httpx -silent > {{live_filename}}`}
+  command={`cat {{filename}} | httpx -silent > {{filename}}`}
 />
 
 | Flag | Meaning |

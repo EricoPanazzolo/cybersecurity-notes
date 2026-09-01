@@ -4,22 +4,30 @@ description: Turn an Nmap XML scan into a self-contained, interactive HTML repor
 ---
 
 <Callout type="info" title="Playbook">
-  This recipe chains [Nmap](/docs/port-scanning/nmap) with
-  [nmap2html](https://github.com/EricoPanazzolo/nmap2html) — a standalone
-  Python tool that turns Nmap's XML output into a clean, interactive,
-  self-contained HTML report, no server or dependencies required.
+  This recipe chains [Nmap](/docs/port-scanning/nmap) with **nmap2html** — a
+  standalone Python tool that turns Nmap's XML output into a clean,
+  interactive, self-contained HTML report, no server or dependencies
+  required.
 </Callout>
+
+<Cards>
+  <Card title="nmap2html on GitHub" href="https://github.com/EricoPanazzolo/nmap2html">
+    Source, full flag reference (`python3 nmap2html.py -h`), and releases.
+  </Card>
+</Cards>
+
+<PageVariables vars={{ target: "10.10.10.10", filename: "nmap_10.10.10.10.xml" }} />
 
 ## Step 1 — Scan with Nmap, save XML output
 
-<CommandInput
-  vars={{ target: "10.10.10.10" }}
-  derivedVars={{ filename: { from: "target", template: "nmap_{value}.xml" } }}
+<PageCommand
+  sharedVars={["filename"]}
   command={`nmap -sV -sC -A -oX {{filename}} {{target}}`}
 />
 
 `-oX` is required — nmap2html only reads Nmap's XML output, not the
-plain-text or grepable formats.
+plain-text or grepable formats. The `filename` field above is shared with
+the steps below — change it once here or there and every block updates.
 
 <Callout type="info">
   Scanning multiple targets from a file also works — see
@@ -28,8 +36,8 @@ plain-text or grepable formats.
 
 ## Step 2 — Generate the HTML report
 
-<CommandInput
-  vars={{ filename: "nmap_10.10.10.10.xml" }}
+<PageCommand
+  sharedVars={["filename"]}
   command={`python3 nmap2html.py {{filename}}`}
 />
 
@@ -37,8 +45,9 @@ By default this writes `<name>.html` next to the input file, plus
 `assets/report.css` and `assets/report.js`. Pass `-o` to choose the output
 filename instead:
 
-<CommandInput
-  vars={{ filename: "nmap_10.10.10.10.xml", output: "assessment.html" }}
+<PageCommand
+  sharedVars={["filename"]}
+  localVars={{ output: "assessment.html" }}
   command={`python3 nmap2html.py {{filename}} -o {{output}}`}
 />
 
@@ -51,9 +60,3 @@ filename instead:
 - Clickable links for any HTTP/HTTPS service Nmap found.
 
 Requires Python 3.9+ and Nmap itself — no third-party Python packages.
-
-<Cards>
-  <Card title="nmap2html on GitHub" href="https://github.com/EricoPanazzolo/nmap2html">
-    Source, full flag reference (`python3 nmap2html.py -h`), and releases.
-  </Card>
-</Cards>
