@@ -35,7 +35,8 @@ wire Fumadocs to Next.js's App Router:
 - `lib/source.ts` — defines the Fumadocs MDX content source (`content/docs`)
   and exposes it as `source`.
 - `app/docs/[[...slug]]/page.tsx` — the single catch-all route that renders
-  every doc page via `source.getPage()` + `generateStaticParams()`.
+  every doc page via `source.getPage()` + `generateStaticParams()`. Also
+  wraps each page's MDX body in `CommandChannelProvider` (see item 6 below).
 - `app/docs/layout.tsx` — the docs sidebar layout, built from `source`'s page
   tree.
 - `components/mdx.tsx` — registers MDX components (`Callout`, `Card`,
@@ -120,13 +121,32 @@ command, flag, or link that wasn't in the source.
    `<Tooltip>` (`components/tooltip.tsx`) explaining what they do —
    don't use the native `title` attribute for this, it looks out of
    place next to the rest of the design.
-6. There is no shared/pinned page-level state — every `<CommandInput>` is
-   self-contained. When several command blocks on one page logically use
-   the same value (e.g. `target` across three commands, or one playbook
-   step's output file feeding the next step's input), give each block its
-   own `vars`/`derivedVars` entry for it, with the same default text, even
-   though that repeats the field across blocks. The reader fills in each
-   block independently — there is deliberately no auto-sync between blocks.
+6. By default there is no shared/pinned page-level state — every
+   `<CommandInput>` is self-contained. When several command blocks on one
+   page logically use the same value (e.g. `target` across three commands,
+   or one playbook step's output file feeding the next step's input), give
+   each block its own `vars`/`derivedVars` entry for it, with the same
+   default text, even though that repeats the field across blocks. The
+   reader fills in each block independently — there is deliberately no
+   auto-sync between blocks *unless* a channel link (below) is used.
+
+   For the narrower case where one block's `output` must live-update a
+   *different* block's `input` as the reader types (not just share the same
+   default text), opt in to a cross-block channel instead: give the
+   producing block `publishChannel="some-name"` and give the consuming
+   block `derivedVars={{ input: { channel: "some-name" } }}` (in place of
+   the usual `{ from, template }` shape) — no `vars` entry for `target` is
+   needed on the consumer if its command template never references
+   `{{target}}`, but keep a plain `vars={{ input: "toolname_target.com" }}`
+   default so the field still shows something sensible before the producer
+   block has published. This is powered by `CommandChannelProvider`
+   (`components/command-input.tsx`), which `app/docs/[[...slug]]/page.tsx`
+   wraps around every page's MDX body — content authors never add the
+   provider themselves, just the `publishChannel`/`channel` props. Reach
+   for this only when the reader genuinely needs the two fields to track
+   each other live (e.g. they may type a custom output filename); the
+   default independent-blocks-with-a-note pattern (item 8) remains correct
+   for the common case.
 7. For a command that saves output to a file, add a `derivedVars` field
    instead of hardcoding the output file — it tracks another field's live
    value (via `lib/sanitize-filename.ts`, which strips URL schemes/paths)
@@ -148,7 +168,11 @@ command, flag, or link that wasn't in the source.
    `output`) so the default matches what that step produced — and add a
    one-line note above the block ("`input` defaults to Step N's `output`
    file — edit both if you change either away from the default.") so the
-   reader notices the link between the two fields.
+   reader notices the link between the two fields. If the two fields should
+   instead track each other live as the reader types, use a channel link
+   (item 6) and adjust the note accordingly (e.g. "`input` tracks this
+   step's own `output` field above live — edit it directly here to break
+   the link.").
 9. Playbooks go under `content/docs/playbooks/` with the `<Callout
    type="info" title="Playbook">` intro described above.
 10. Run `npm run build` before committing.

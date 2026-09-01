@@ -1,6 +1,15 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+} from "react";
+import type { ReactNode } from "react";
 import { DynamicCodeBlock } from "fumadocs-ui/components/dynamic-codeblock";
 import { sanitizeForFilename } from "@/lib/sanitize-filename";
 import { orderFields } from "@/lib/field-order";
@@ -8,12 +17,47 @@ import { Tooltip } from "./tooltip";
 
 const VAR_PATTERN = /\{\{(\w+)\}\}/g;
 
-interface DerivedVarConfig {
-  /** Name of the source var this one tracks until manually edited. */
-  from: string;
-  /** Template for the derived default; `{value}` is replaced by the source var's current value. */
-  template: string;
+interface CommandChannelContextValue {
+  values: Record<string, string>;
+  publish: (channel: string, value: string) => void;
 }
+
+const CommandChannelContext = createContext<CommandChannelContextValue | null>(
+  null,
+);
+
+/**
+ * Opt-in cross-block link for the rare case where one command's `output`
+ * must live-update a *different* command block's `input` (e.g. the reader
+ * typed a custom filename into the first block and the second block's
+ * default needs to follow it), instead of the normal per-block-independent
+ * behavior. Wraps a page's MDX body once; blocks only participate when they
+ * pass `publishChannel` (producer) or a `{ channel }` derivedVar (consumer).
+ */
+export function CommandChannelProvider({ children }: { children: ReactNode }) {
+  const [values, setValues] = useState<Record<string, string>>({});
+  const publish = useCallback((channel: string, value: string) => {
+    setValues((prev) => (prev[channel] === value ? prev : { ...prev, [channel]: value }));
+  }, []);
+  const ctx = useMemo(() => ({ values, publish }), [values, publish]);
+  return (
+    <CommandChannelContext.Provider value={ctx}>
+      {children}
+    </CommandChannelContext.Provider>
+  );
+}
+
+type DerivedVarConfig =
+  | {
+      /** Name of the source var this one tracks until manually edited. */
+      from: string;
+      /** Template for the derived default; `{value}` is replaced by the source var's current value. */
+      template: string;
+    }
+  | {
+      /** Name of a cross-block channel (see `CommandChannelProvider`) this var mirrors until manually edited. */
+      channel: string;
+    };
 
 interface CommandInputProps {
   /** Command template, with placeholders written as `{{name}}`. */
@@ -26,6 +70,12 @@ interface CommandInputProps {
    * directly, at which point it stops auto-updating.
    */
   derivedVars?: Record<string, DerivedVarConfig>;
+  /**
+   * Cross-block channel name (see `CommandChannelProvider`) this block's own
+   * `output` field publishes its live value to, for another block's `input`
+   * to mirror. No-op if the block has no `output` field.
+   */
+  publishChannel?: string;
   lang?: string;
   /**
    * When true, fields start empty — their default shows only as grey
@@ -52,10 +102,12 @@ export function CommandInput({
   command,
   vars,
   derivedVars,
+  publishChannel,
   lang = "bash",
   placeholderMode = false,
 }: CommandInputProps) {
   const id = useId();
+  const channelCtx = useContext(CommandChannelContext);
   const names = useMemo(() => {
     const templateNames = new Set(
       Array.from(command.matchAll(VAR_PATTERN), (m) => m[1]),
@@ -76,7 +128,10 @@ export function CommandInput({
   const effectiveValues = useMemo(() => {
     const next = placeholderMode ? { ...vars, ...values } : { ...values };
     for (const [name, config] of Object.entries(derived)) {
-      if (!touched[name]) {
+      if (touched[name]) continue;
+      if ("channel" in config) {
+        next[name] = channelCtx?.values[config.channel] ?? vars[name] ?? "";
+      } else {
         next[name] = config.template.replace(
           "{value}",
           sanitizeForFilename(next[config.from] ?? ""),
@@ -84,7 +139,14 @@ export function CommandInput({
       }
     }
     return next;
-  }, [values, touched, derived, placeholderMode, vars]);
+  }, [values, touched, derived, placeholderMode, vars, channelCtx]);
+
+  useEffect(() => {
+    if (publishChannel && channelCtx && effectiveValues.output !== undefined) {
+      channelCtx.publish(publishChannel, effectiveValues.output);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [publishChannel, effectiveValues.output]);
 
   const rendered = names.reduce((acc, name) => {
     const filled = placeholderMode ? Boolean(values[name]) || applied : true;

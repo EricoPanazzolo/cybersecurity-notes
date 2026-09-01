@@ -5,6 +5,7 @@
     "nmap2html-report",
     "cors-mass-hunting",
     "httrack-trufflehog",
-    "wayback-404-discovery"
+    "wayback-404-discovery",
+    "git-exposure-discovery"
   ]
 }
