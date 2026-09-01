@@ -129,7 +129,31 @@ wc -l tracked-files.txt`}
 `git ls-files -s` output format: `<mode> <blob-sha1> <stage>\t<path>` — the
 blob hash is what you'd need to pull that specific file's content via
 `git cat-file -p <hash>` once objects are available (Step 4 gets you those
-automatically).
+automatically) — but that's not guaranteed:
+
+<Callout type="info" title="Why git-dumper's object fetch can come up empty — and why Step 3 still matters">
+  If `.git/` itself returns `403` (no directory listing), git-dumper can't
+  use its "recursive crawl" mode — it falls back to guessing a fixed list
+  of well-known filenames (`HEAD`, `config`, `index`, `packed-refs`,
+  `hooks/*.sample`, etc.), which usually succeed since they're just static
+  files a webserver serves normally.
+
+  From there it tries to fetch every object referenced by those files —
+  blob hashes from `index`, commit hashes from `packed-refs`/`refs/*` — at
+  their predictable path `.git/objects/<2-char>/<38-char>`. These can all
+  come back `404` if the repo was ever `git gc`'d server-side: `gc` bundles
+  loose objects into a compact `.pack` file and deletes the individual
+  loose files — routine git maintenance, not a defense. The `.pack` file
+  itself is often not independently discoverable either — `/.git/objects/pack/`
+  is typically listing-blocked, and `/.git/objects/info/packs` (the file
+  that would normally reveal the pack's exact filename) is easy to have
+  missing or unreachable too.
+
+  In that situation Step 4 alone recovers nothing. Step 3 still works
+  regardless — `.git/index` alone hands you the full tracked file tree,
+  which is enough to run the endpoint-probing command below and find out
+  what's actually live on the server, even with zero file contents.
+</Callout>
 
 What to look for in the tracked file list:
 
