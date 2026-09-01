@@ -13,6 +13,18 @@ request — path, parameter, header, POST body — can be replaced with the
   page instead, alongside the other subdomain enumeration tools.
 </Callout>
 
+## Basic usage
+
+<CommandInput
+  vars={{ domain: "domain.com", wordlist: "/usr/share/wordlists/dirb/common.txt" }}
+  command={`ffuf -u https://{{domain}}/FUZZ -w {{wordlist}}`}
+  placeholderMode
+/>
+
+The minimal invocation: a target URL with `FUZZ` marking the injection
+point, and a wordlist. No filtering, headers, or rate limiting — useful for
+a quick first pass before reaching for the more tuned commands below.
+
 ## Directory / sub-path fuzzing
 
 <CommandInput
