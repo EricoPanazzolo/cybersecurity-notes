@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-"The Toolbox" — a self-hosted Fumadocs (on Next.js 16 / React 19) documentation
+"Cybersecurity Personal Notes" — a self-hosted Fumadocs (on Next.js 16 / React 19) documentation
 site that catalogs recon, enumeration, and web-application security-testing
 tools and playbooks. All content is authorized-testing reference material
 sourced from a personal Notion export, reorganized into `content/docs/`.

@@ -1,4 +1,4 @@
-# Task: Build "The Toolbox" — a Fumadocs-based recon/security tool reference
+# Task: Build "Cybersecurity Personal Notes" — a Fumadocs-based recon/security tool reference
 
 ## Goal
 

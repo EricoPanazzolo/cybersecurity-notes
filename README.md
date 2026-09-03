@@ -1,4 +1,4 @@
-# The Toolbox
+# Cybersecurity Personal Notes
 
 A self-hosted documentation site — built with [Fumadocs](https://www.fumadocs.dev)
 on Next.js — that catalogs recon, enumeration, and web-application

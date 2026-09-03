@@ -15,7 +15,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "The Toolbox",
+  title: "Cybersecurity Personal Notes",
   description: "A recon, enumeration, and web-security-testing tool reference.",
 };
 
