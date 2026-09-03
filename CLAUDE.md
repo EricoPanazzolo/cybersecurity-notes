@@ -8,8 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 "Cybersecurity Personal Notes" — a self-hosted Fumadocs (on Next.js 16 / React 19) documentation
 site that catalogs recon, enumeration, and web-application security-testing
-tools and playbooks. All content is authorized-testing reference material
-sourced from a personal Notion export, reorganized into `content/docs/`.
+tools and playbooks. All content is authorized-testing reference material,
+organized into `content/docs/`.
 
 ## Commands
 
@@ -56,10 +56,10 @@ insert separator labels (e.g. `"---Reconnaissance---"`).
 
 ### Category taxonomy — read before adding a page
 
-The source Notion content mixed single-tool manuals with playbooks (recipes
-chaining several *separate* CLI tools, each step's output feeding the next).
-These are deliberately kept in separate categories so a playbook is never
-mistaken for one tool's reference:
+Single-tool manuals and playbooks (recipes chaining several *separate* CLI
+tools, each step's output feeding the next) are deliberately kept in
+separate categories so a playbook is never mistaken for one tool's
+reference:
 
 | Category | Contents |
 | --- | --- |

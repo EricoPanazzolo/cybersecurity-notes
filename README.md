@@ -2,9 +2,8 @@
 
 A self-hosted documentation site — built with [Fumadocs](https://www.fumadocs.dev)
 on Next.js — that catalogs recon, enumeration, and web-application
-security-testing tools and playbooks. Sourced from a personal Notion
-reference and reorganized so single-tool manuals and multi-tool recipes
-never get mixed together.
+security-testing tools and playbooks, organized so single-tool manuals and
+multi-tool recipes never get mixed together.
 
 > **Authorized testing only.** Everything documented here is for use against
 > systems and scopes you're authorized to test.
@@ -66,11 +65,12 @@ content/docs/
 
 ## Category structure & reasoning
 
-The source Notion page mixed two fundamentally different kinds of content:
-single-tool manuals (one tool's flags and usage) and playbooks (recipes that
-chain several *separate* CLI tools into one pipeline, each step's output
-feeding the next). Mixing them made it easy to mistake a multi-tool recipe
-for a single tool's reference, so they're split into dedicated sections:
+This reference deliberately separates two fundamentally different kinds of
+content: single-tool manuals (one tool's flags and usage) and playbooks
+(recipes that chain several *separate* CLI tools into one pipeline, each
+step's output feeding the next). Mixing them made it easy to mistake a
+multi-tool recipe for a single tool's reference, so they're split into
+dedicated sections:
 
 | Category | Contents |
 | --- | --- |
@@ -96,11 +96,10 @@ reason). Every playbook page opens with a `<Callout type="info"
 title="Playbook">` naming the tools it chains and linking to each one's
 page.
 
-Where the original Notion content was missing (an unrecoverable embedded
-bookmark, a tool mentioned but never given its own page, e.g. Subfinder) or
-contained an error (a typo'd flag, a wrong CLI option), the MDX page says so
-explicitly in a callout rather than inventing a command, flag, or link that
-wasn't in the source material.
+Where source material was missing (a tool mentioned but never given its own
+page, e.g. Subfinder) or contained an error (a typo'd flag, a wrong CLI
+option), the MDX page says so explicitly in a callout rather than inventing
+a command, flag, or link that wasn't in the source material.
 
 ## Adding a new tool or playbook page
 
