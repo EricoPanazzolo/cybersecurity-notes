@@ -19,6 +19,12 @@ export const metadata: Metadata = {
   description: "A recon, enumeration, and web-security-testing tool reference.",
 };
 
+// GitHub Pages has no server to answer live search queries, so the search
+// dialog is switched to the "static" client, which downloads the whole
+// prebuilt index (app/api/search/route.ts) and searches it in the browser.
+const isGithubPages = process.env.GITHUB_PAGES === "true";
+const basePath = isGithubPages ? "/cybersecurity-notes" : "";
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
@@ -27,7 +33,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       suppressHydrationWarning
     >
       <body className="flex flex-col min-h-screen">
-        <RootProvider>{children}</RootProvider>
+        <RootProvider
+          search={
+            isGithubPages
+              ? { options: { type: "static", api: `${basePath}/api/search` } }
+              : undefined
+          }
+        >
+          {children}
+        </RootProvider>
       </body>
     </html>
   );
