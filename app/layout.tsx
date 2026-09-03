@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Google_Sans, JetBrains_Mono } from "next/font/google";
 import { RootProvider } from "fumadocs-ui/provider/next";
 import type { ReactNode } from "react";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const googleSans = Google_Sans({
+  variable: "--font-google-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
 });
 
@@ -23,7 +23,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable}`}
+      className={`${googleSans.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
       <body className="flex flex-col min-h-screen">
