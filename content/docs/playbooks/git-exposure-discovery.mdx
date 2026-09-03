@@ -45,7 +45,7 @@ Expected if exposed: a `[core]`/`[remote "origin"]` INI block.
   readable — worth testing a couple of known filenames before giving up.
 </Callout>
 
-## Step 2 — Fuzz for known .git internal paths ([FFUF](/docs/web-fuzzing/ffuf))
+## Step 2 — Fuzz for known .git internal paths (FFUF)
 
 `.git/` has a predictable internal structure, so a purpose-built wordlist
 beats a generic content-discovery list. SecLists ships one:
@@ -191,7 +191,7 @@ server:
 | `-rl <n>` | Rate limit — max requests per second. |
 | `-silent` | Suppress banner/noise, print clean results only. |
 
-## Step 4 — Full recursive extraction with [git-dumper](https://github.com/arthaud/git-dumper)
+## Step 4 — Full recursive extraction with git-dumper
 
 The index only gives you paths and hashes — to get actual file contents
 (including from old commits and deleted files that never appear in the

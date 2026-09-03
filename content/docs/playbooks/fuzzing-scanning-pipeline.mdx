@@ -15,7 +15,7 @@ description: Chaos → HTTPX → Naabu → Nmap — from a domain to annotated s
 A recon pipeline for going from "list of subdomains" to "annotated Nmap
 results" — each step's output feeds the next tool.
 
-## Step 1 — Find all IPs behind a domain ([Chaos](https://github.com/projectdiscovery/chaos-client))
+## Step 1 — Find all IPs behind a domain (Chaos)
 
 <CommandInput
   vars={{ target: "domain.com" }}
@@ -34,7 +34,7 @@ return known subdomains/IPs for a domain.
 | `-d <target>` | Target domain. |
 | `-o <file>` | Save results to file. |
 
-## Step 2 — Filter to active hosts, extract IPs ([HTTPX](https://github.com/projectdiscovery/httpx))
+## Step 2 — Filter to active hosts, extract IPs (HTTPX)
 
 `input` defaults to Step 1's `output` file — edit both if you change either
 away from the default.
@@ -73,7 +73,7 @@ away from the default.
 
 `sort -u` sorts the list and removes duplicate entries.
 
-## Step 4 — Find open ports ([Naabu](https://github.com/projectdiscovery/naabu))
+## Step 4 — Find open ports (Naabu)
 
 `input` defaults to Step 3's `output` file — edit both if you change either
 away from the default.
@@ -97,7 +97,7 @@ away from the default.
 | `-silent` | Clean output for piping. |
 | `-o <file>` | Save results to file. |
 
-## Step 5 — Enrich with Nmap ([naabu-to-nmap](https://github.com/SAERANGAM/naabu-nmap))
+## Step 5 — Enrich with Nmap (naabu-to-nmap)
 
 `input` defaults to Step 4's `output` file — edit both if you change either
 away from the default.
@@ -119,7 +119,7 @@ writes an `nmap_out.xml` alongside the input by default (see the tool's own
 | --- | --- |
 | `-i <file>` | Input file — Naabu's scan results. |
 
-## Step 6 — Format the results ([nmap-parse-output](https://github.com/mrschyte/nmap-parse-output))
+## Step 6 — Format the results (nmap-parse-output)
 
 <CommandInput
   vars={{ target: "domain.com" }}

@@ -13,7 +13,7 @@ description: Mirror a site, then scan the mirror for leaked secrets.
 Two-stage technique: mirror a website locally with **HTTrack**, then scan
 the mirrored files for leaked secrets with **TruffleHog**.
 
-## Step 1 — Mirror the site ([HTTrack](https://www.httrack.com/))
+## Step 1 — Mirror the site (HTTrack)
 
 `httrack` is a website copier that downloads HTML, images, CSS, and JS, and
 rewrites links so the site can be browsed offline. Useful for:
@@ -36,7 +36,7 @@ rewrites links so the site can be browsed offline. Useful for:
 | --- | --- |
 | `-O <dir>` | Output directory to save the mirrored site into. |
 
-## Step 2 — Scan the mirror for secrets ([TruffleHog](https://github.com/trufflesecurity/trufflehog))
+## Step 2 — Scan the mirror for secrets (TruffleHog)
 
 TruffleHog scans files/repos for hardcoded secrets (API keys, tokens,
 credentials) using both regex detectors and live verification against the
