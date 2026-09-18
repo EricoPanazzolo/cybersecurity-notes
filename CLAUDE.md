@@ -40,8 +40,8 @@ wire Fumadocs to Next.js's App Router:
 - `app/docs/layout.tsx` — the docs sidebar layout, built from `source`'s page
   tree.
 - `components/mdx.tsx` — registers MDX components (`Callout`, `Card`,
-  `Cards`, plus Fumadocs' defaults) globally for all `.mdx` files via
-  `getMDXComponents()`.
+  `Cards`, `CommandInput`, `ReverseShellGenerator`, plus Fumadocs' defaults)
+  globally for all `.mdx` files via `getMDXComponents()`.
 
 `lib/layout.shared.tsx` holds nav config (site title, top-level links) shared
 between the home layout and the docs layout.
@@ -71,8 +71,9 @@ reference:
 | Cloud & Identity Enumeration | Azure AD / Entra ID enumeration, Bucket enumeration, Firebase enumeration |
 | Web Application Vulnerabilities | Nuclei, CORS (Corsy), Code injection probe, LFI |
 | Network & Certificate Intelligence | Cipher Suites, Certificates, Whois, IP, Domains |
+| Web Application Firewall | Cloudflare |
 | Reverse Shells & Payloads (`content/docs/reverse-shells/`) | Reverse shell one-liner generator |
-| Playbooks & Workflows (`content/docs/playbooks/`) | Fuzzing & scanning pipeline (Chaos→HTTPX→Naabu→Nmap), Nmap→HTML report (nmap2html), CORS mass hunting, HTTrack+TruffleHog, Wayback+uro archived-file discovery |
+| Playbooks & Workflows (`content/docs/playbooks/`) | Fuzzing & scanning pipeline (Chaos→HTTPX→Naabu→Nmap), Nmap→HTML report (nmap2html), CORS mass hunting, HTTrack+TruffleHog, Wayback+uro archived-file discovery, Git exposure discovery & extraction (curl→FFUF→git→HTTPX→git-dumper) |
 | AI Prompts (`content/docs/ai-prompts/`) | Prompt techniques for using AI coding assistants in security work |
 
 A playbook whose commands would substantially duplicate an existing tool

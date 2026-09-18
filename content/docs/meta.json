@@ -11,6 +11,7 @@
     "cloud-identity-enumeration",
     "web-vulnerabilities",
     "network-cert-intelligence",
+    "web-application-firewall",
     "---Exploitation---",
     "reverse-shells",
     "---Workflows---",
