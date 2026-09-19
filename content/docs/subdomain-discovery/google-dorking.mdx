@@ -1,0 +1,36 @@
+---
+title: Google Dorking
+description: Search-engine recon for indexed pages, exposed files, and source leaks on a target domain.
+---
+
+**Google dorking** uses advanced search operators (`site:`, `filetype:`,
+`inurl:`, `intitle:`) to surface content Google has already indexed for a
+target — admin panels, leaked config/backup files, exposed `.git`
+directories, verbose error pages, and mentions of the domain on third-party
+sites like Pastebin or GitHub. It's fully passive: nothing is sent to the
+target itself.
+
+<Callout type="warn" title="Search engine ≠ authorization">
+  Dorking only touches Google's index, not the target, so it doesn't need
+  the same rate-limit care as active scanning — but a link that returns a
+  live secret or credential is still in-scope data. Handle anything found
+  this way under the same authorized-testing rules as any other finding.
+</Callout>
+
+## Dork reference
+
+Type a domain below and every query in every category becomes a clickable
+link that runs it as a live Google search in a new tab.
+
+<GoogleDorks />
+
+## Notes
+
+- `site:` restricts results to the given host — use the apex domain (e.g.
+  `domain.com`) to catch all subdomains Google has indexed, or a specific
+  subdomain (e.g. `sub.domain.com`) to narrow the scope.
+- The **Related Recon** tab drops the `site:` filter for the Pastebin/GitHub
+  queries and instead searches for the domain as a literal string, since
+  those sites aren't hosting content *on* the target domain.
+- Google periodically challenges automated-looking query bursts with a
+  CAPTCHA — space out clicks if you're working through a category quickly.

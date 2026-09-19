@@ -3,6 +3,7 @@ import { Callout } from 'fumadocs-ui/components/callout';
 import { Card, Cards } from 'fumadocs-ui/components/card';
 import { CommandInput } from './command-input';
 import { ReverseShellGenerator } from './reverse-shell-generator';
+import { GoogleDorks } from './google-dorks';
 import type { MDXComponents } from 'mdx/types';
 
 export function getMDXComponents(components?: MDXComponents) {
@@ -13,6 +14,7 @@ export function getMDXComponents(components?: MDXComponents) {
     Cards,
     CommandInput,
     ReverseShellGenerator,
+    GoogleDorks,
     ...components,
   } satisfies MDXComponents;
 }
