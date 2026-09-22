@@ -1,4 +1,0 @@
-{
-  "title": "Web Content & Directory Fuzzing",
-  "pages": ["gobuster", "dirsearch", "ffuf"]
-}

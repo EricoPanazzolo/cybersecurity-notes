@@ -1,0 +1,4 @@
+{
+  "title": "Attack Surface Discovery",
+  "pages": ["amass", "bbot", "gobuster-dns", "ffuf-subdomain", "google-dorking"]
+}

@@ -19,3 +19,12 @@ body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+
+/* Narrower sidebar — Fumadocs' default 268px is wider than this content
+   tree needs. Overrides the framework's own `:has()`-driven responsive
+   rule, which has higher specificity, hence `!important`. */
+@media (min-width: 768px) {
+  #nd-docs-layout {
+    --fd-sidebar-width: 270px !important;
+  }
+}

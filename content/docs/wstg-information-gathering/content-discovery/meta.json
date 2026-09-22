@@ -1,0 +1,4 @@
+{
+  "title": "Content & Entry Point Discovery",
+  "pages": ["gobuster-dir", "dirsearch", "ffuf-dir"]
+}

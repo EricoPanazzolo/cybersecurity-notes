@@ -1,0 +1,32 @@
+---
+title: Whois
+description: Domain registration lookups — registrar, dates, and name servers.
+wstg: "WSTG-INFO-04"
+wstgTitle: "Attack Surface Identification"
+---
+
+Looking up a domain's registration details: registrar, creation/expiry
+dates, and name servers.
+
+## Tools
+
+### Who.is
+
+[who.is](https://who.is/) — WHOIS lookup service — returns domain registration details (registrar,
+creation/expiry date, name servers) and basic IP/DNS info for a domain or
+IP.
+
+## Quick CLI equivalent
+
+#### Quick WHOIS from terminal
+
+<CommandInput
+  vars={{ domain: "domain.com" }}
+  derivedVars={{ output: { from: "domain", template: "whois_{value}.txt" } }}
+  command={`whois {{domain}} > {{output}}`}
+  placeholderMode
+/>
+
+See [Domains](/docs/wstg-information-gathering/network-intel/domains) and
+[IP](/docs/wstg-information-gathering/network-intel/ip) for other domain/host intelligence covered
+in this reference.

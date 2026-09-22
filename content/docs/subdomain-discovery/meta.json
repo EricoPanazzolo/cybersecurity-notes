@@ -1,4 +1,0 @@
-{
-  "title": "Subdomain & Attack Surface Discovery",
-  "pages": ["overview", "amass", "bbot", "gobuster-dns", "ffuf-subdomain", "google-dorking"]
-}

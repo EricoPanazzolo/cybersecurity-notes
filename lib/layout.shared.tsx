@@ -10,6 +10,11 @@ export function baseOptions(): BaseLayoutProps {
         text: 'Docs',
         url: '/docs',
       },
+      {
+        text: 'OWASP WSTG',
+        url: 'https://wstg.owasp.org/latest/',
+        external: true,
+      },
     ],
   };
 }

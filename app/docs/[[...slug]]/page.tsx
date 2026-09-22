@@ -9,6 +9,7 @@ import {
 import { notFound } from "next/navigation";
 import { getMDXComponents } from "@/components/mdx";
 import { CommandChannelProvider } from "@/components/command-input";
+import { WstgBadge } from "@/components/wstg-badge";
 import type { Metadata } from "next";
 import { createRelativeLink } from "fumadocs-ui/mdx";
 
@@ -23,6 +24,9 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
     <DocsPage toc={page.data.toc} full={page.data.full}>
       <DocsTitle>{page.data.title}</DocsTitle>
       <DocsDescription>{page.data.description}</DocsDescription>
+      {page.data.wstg && (
+        <WstgBadge code={page.data.wstg} title={page.data.wstgTitle} />
+      )}
       <DocsBody>
         <CommandChannelProvider>
           <MDX

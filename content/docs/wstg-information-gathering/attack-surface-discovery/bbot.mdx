@@ -1,0 +1,65 @@
+---
+title: BBOT
+description: Recursive OSINT/attack-surface scanner built on chained presets.
+wstg: "WSTG-INFO-04"
+wstgTitle: "Attack Surface Identification"
+full: true
+---
+
+**BBOT** (Bighuge BLS OSINT Tool) is a recursive OSINT/attack-surface
+scanner. Instead of running individual tools by hand, you enable "presets"
+(bundles of modules) and BBOT chains their outputs together automatically —
+subdomains feed into web probing, which feeds into vulnerability scanning,
+etc.
+
+## Example scan
+
+<CommandInput
+  vars={{ target: "domain.com" }}
+  derivedVars={{ output: { from: "target", template: "enum_{value}" } }}
+  command={`bbot -t {{target}} \\
+  -p subdomain-enum cloud-enum nuclei-budget webbrute spider web \\
+  -n {{output}} \\
+  -y \\
+  -o .`}
+  placeholderMode
+/>
+
+## Top-level flag reference
+
+| Flag | Meaning |
+| --- | --- |
+| `-t TARGET` | **Scope declaration.** Everything BBOT discovers (subdomains, IPs, URLs) is checked against this, and only in-scope assets are actively touched. |
+| `-p <presets>` | List of presets (module bundles) to enable — see table below. |
+| `-y` | Skip the interactive "confirm these modules will run" prompt — needed for unattended/scripted runs. |
+| `-n <name>` | Scan name — becomes the output folder name and the identifier in BBOT's scan history. Defaults to `enum_<target>`; edit the field directly to break the link and set a custom name. |
+| `-o <dir>` | Output directory — writes `output.txt`, `.ndjson`, a subdomains file, screenshots (if enabled), etc. |
+
+## Presets used above
+
+| Preset | What it does |
+| --- | --- |
+| **subdomain-enum** | The foundation. Passive API sources (crt.sh, certspotter, rapiddns, hackertarget, dnsdumpster, subdomaincenter, urlscan, etc.) plus active DNS brute-force via `dnsbrute`/`dnsbrute_mutations` (massdns + wordlist — tagged `loud`, so this is not purely passive). Everything else in the scan builds on the subdomains this finds. |
+| **cloud-enum** | Cloud storage bucket checks — AWS S3, Google Cloud Storage, Azure/Microsoft, DigitalOcean Spaces, Firebase, Hetzner Object Storage — plus generic bucket/file enumeration, run against the target and any subdomains `subdomain-enum` discovers. |
+| **nuclei-budget** | Runs [Nuclei](https://github.com/projectdiscovery/nuclei) in `budget` mode instead of the full template set — caps requests-per-host (`budget` module option) so vulnerability-template scanning stays bounded rather than exhaustive. `nuclei` itself is tagged `invasive`. |
+| **webbrute** | Directory/content brute-force, surface-level only (no recursion). Finds hidden paths the spider wouldn't surface on its own. |
+| **spider** | Recursive crawler — follows links and feeds newly-discovered URLs to `nuclei-budget` and `webbrute` downstream. |
+| **web** | Non-intrusive web recon baseline: TLS cert parsing, `robots.txt`/`security.txt`, exposed `.git`, GraphQL introspection, OAuth endpoint discovery, `badsecrets` (known hardcoded framework secrets), NTLM info leak, bucket checks at the web layer. |
+
+<Callout type="warn">
+  This preset combination is **active, not passive** — `subdomain-enum`
+  includes DNS brute-force (`dnsbrute`), and `nuclei-budget`/`webbrute` send
+  real probe traffic (bounded by budget mode and surface-level-only brute,
+  respectively, but still active). Make sure `-t` scope is airtight and you
+  have authorization before running it. Because `subdomain-enum` runs first,
+  every subdomain it discovers automatically becomes a target for
+  `nuclei-budget`, `webbrute`, `spider`, and `web` in the same run — if scope
+  is restricted to specific hosts rather than the whole domain, review
+  discovered subdomains before running the active modules against them.
+</Callout>
+
+<Cards>
+  <Card title="Nuclei on GitHub" href="https://github.com/projectdiscovery/nuclei">
+    The template-driven scanner BBOT's `nuclei` preset runs.
+  </Card>
+</Cards>

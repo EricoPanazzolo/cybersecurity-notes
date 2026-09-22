@@ -1,4 +1,0 @@
-{
-  "title": "Cloud & Identity Enumeration",
-  "pages": ["azure-ad-enum", "bucket-enumeration", "firebase-enumeration"]
-}

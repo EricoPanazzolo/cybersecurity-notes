@@ -4,12 +4,13 @@ description: Confirm, fuzz, and fully extract a misconfigured .git directory exp
 ---
 
 <Callout type="info" title="Playbook">
-  This recipe chains `curl`, [FFUF](/docs/web-fuzzing/ffuf), `git`,
+  This recipe chains `curl`, [FFUF](/docs/wstg-information-gathering/content-discovery/ffuf-dir), `git`,
   [HTTPX](https://github.com/projectdiscovery/httpx), and
   [git-dumper](https://github.com/arthaud/git-dumper) into one pipeline:
   confirm exposure, fuzz for known internal `.git` paths, extract the index
   locally, probe the tracked paths for live endpoints, then fully dump the
-  repo including history.
+  repo including history. Relates to **WSTG-CONF-04** (Review Old Backup
+  and Unreferenced Files for Sensitive Information).
 </Callout>
 
 When a web server serves the `.git` directory of a deployed application
@@ -55,7 +56,7 @@ beats a generic content-discovery list. SecLists ships one:
 This list already includes the `.git/` prefix on each entry (`.git/HEAD`,
 `.git/config`, `.git/index`, `.git/logs/HEAD`, `.git/refs/heads/master`,
 `.git/packed-refs`, etc.), so fuzz at the domain root — see the
-[FFUF page](/docs/web-fuzzing/ffuf) for general flag reference.
+[FFUF page](/docs/wstg-information-gathering/content-discovery/ffuf-dir) for general flag reference.
 
 <CommandInput
   vars={{ target: "target.com" }}

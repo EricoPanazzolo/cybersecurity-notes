@@ -1,0 +1,40 @@
+---
+title: Firebase Enumeration
+description: Checking for misconfigured Google Firebase projects.
+wstg: "WSTG-CONF-11"
+wstgTitle: "Cloud Storage"
+---
+
+Checking for misconfigured Google Firebase projects — specifically, Firebase
+Realtime Database or Firestore instances left with public read/write rules,
+which can expose or allow tampering with an app's entire backend data.
+
+## firebaseEnum
+
+Source: [github.com/Sambal0x/firebaseEnum](https://github.com/Sambal0x/firebaseEnum).
+
+<CommandInput
+  vars={{ keyword: "company" }}
+  derivedVars={{ output: { from: "keyword", template: "firebaseenum_{value}.txt" } }}
+  command={`python3 firebaseEnum.py -k {{keyword}} > {{output}}`}
+  placeholderMode
+/>
+
+## Flag reference
+
+| Flag | Meaning |
+| --- | --- |
+| `-k <keyword>` | Keyword (e.g. company/app name) used to generate and test likely Firebase project ID permutations. |
+
+## What it's checking for
+
+- Whether a guessed `<project-id>.firebaseio.com` (Realtime Database) or
+  Firestore instance responds without authentication.
+- Whether database security rules allow public `read`/`write` access — the
+  actual vulnerability, not just the existence of the project.
+
+<Callout type="warn">
+  A reachable Firebase URL isn't necessarily vulnerable — the real check is
+  whether the security rules allow anonymous read/write. Confirm before
+  reporting. Only test projects/keywords within your authorized scope.
+</Callout>

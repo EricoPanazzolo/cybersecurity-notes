@@ -1,0 +1,10 @@
+{
+  "title": "Information Gathering",
+  "pages": [
+    "overview",
+    "attack-surface-discovery",
+    "content-discovery",
+    "fingerprinting",
+    "network-intel"
+  ]
+}

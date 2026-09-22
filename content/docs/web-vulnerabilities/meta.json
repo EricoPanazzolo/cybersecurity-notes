@@ -1,4 +1,0 @@
-{
-  "title": "Web Application Vulnerabilities",
-  "pages": ["nuclei", "cors", "code-injection", "lfi"]
-}

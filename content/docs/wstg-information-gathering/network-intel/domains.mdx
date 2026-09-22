@@ -1,0 +1,33 @@
+---
+title: Domains
+description: Where domain-focused intelligence and enumeration live in this reference.
+wstg: "WSTG-INFO-04"
+wstgTitle: "Attack Surface Identification"
+---
+
+<Callout type="info" title="Decision guide">
+  This page doesn't introduce new tools — domain intelligence in this
+  reference is split across a few dedicated pages depending on what you're
+  actually looking for.
+</Callout>
+
+## Domain registration details
+
+Registrar, creation/expiry dates, name servers — see
+[Whois](/docs/wstg-information-gathering/network-intel/whois).
+
+## Certificates issued for a domain
+
+Certificate chain, SANs, and cross-referencing every host presenting a
+domain's certificate — see [Certificates](/docs/wstg-cryptography/certificates)
+and [IP](/docs/wstg-information-gathering/network-intel/ip) (Censys Search).
+
+## Subdomains under a domain
+
+Passive and active subdomain enumeration — see
+[Subdomain & Attack Surface Discovery](/docs/wstg-information-gathering/overview).
+
+## Finding a domain's real origin IP
+
+Locating the actual server behind a CDN/reverse proxy like Cloudflare — see
+[IP](/docs/wstg-information-gathering/network-intel/ip).

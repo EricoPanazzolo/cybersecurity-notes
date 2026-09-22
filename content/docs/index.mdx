@@ -14,38 +14,59 @@ description: A recon, enumeration, and web-security-testing tool reference.
 </Callout>
 
 Personal reference library for recon, enumeration, and web vulnerability
-testing tools. Each category below links to individual tool pages with
-descriptions, usage examples, and full flag breakdowns — plus a dedicated
-**Playbooks & Workflows** section for recipes that chain multiple tools
-together.
+testing tools, organized around the
+[OWASP Web Security Testing Guide](https://wstg.owasp.org/latest/) (WSTG)
+methodology instead of by tool. Each WSTG chapter below links to the tool
+pages that support it — with descriptions, usage examples, full flag
+breakdowns, and a `WSTG-XXX-##` badge pointing back to the exact test case
+in the standard. Only chapters this reference has content for are
+included; there's no page for a WSTG chapter this site doesn't cover yet.
+
+Exploitation, wordlists, multi-tool playbooks, and AI-assistant prompts
+aren't part of WSTG's testing methodology, so they're kept in their own
+sections below the WSTG reference instead of being forced into a chapter.
+
+## OWASP WSTG reference
+
+<Cards>
+  <Card title="Information Gathering" href="/docs/wstg-information-gathering/overview">
+    Recon, attack surface mapping, content discovery, fingerprinting, and
+    network intelligence.
+  </Card>
+  <Card title="Configuration & Deployment Management" href="/docs/wstg-configuration-management/cloudflare">
+    Cloud storage exposure, WAF/CDN fronting, and general misconfiguration
+    scanning.
+  </Card>
+  <Card title="Identity Management" href="/docs/wstg-identity-management/azure-ad-enum">
+    Tenant, federation, and account enumeration.
+  </Card>
+  <Card title="Cryptography" href="/docs/wstg-cryptography/cipher-suites">
+    TLS protocol, cipher suite, and certificate auditing.
+  </Card>
+  <Card title="Input Validation" href="/docs/wstg-input-validation/code-injection">
+    Code injection and local file inclusion probing.
+  </Card>
+  <Card title="Client-side Testing" href="/docs/wstg-client-side/cors">
+    Cross-Origin Resource Sharing misconfiguration testing.
+  </Card>
+  <Card title="API Testing" href="/docs/wstg-api-testing/swagger-openapi-discovery">
+    API spec discovery, route guessing, parameter discovery, and GraphQL
+    introspection.
+  </Card>
+</Cards>
+
+## Additional resources
 
 <Cards>
   <Card title="Wordlists & Resources" href="/docs/wordlists-resources/seclists">
     SecLists and Alterx — the wordlist foundation used across most tools here.
   </Card>
-  <Card title="Subdomain & Attack Surface Discovery" href="/docs/subdomain-discovery/overview">
-    Passive/active enumeration to map out everything under a target domain.
-  </Card>
-  <Card title="Port & Service Scanning" href="/docs/port-scanning/nmap">
-    Finding live hosts, open ports, and running services with Nmap.
-  </Card>
-  <Card title="Web Content & Directory Fuzzing" href="/docs/web-fuzzing/gobuster">
-    Brute-forcing hidden paths, files, and parameters on a web server.
-  </Card>
-  <Card title="Cloud & Identity Enumeration" href="/docs/cloud-identity-enumeration/azure-ad-enum">
-    Finding misconfigured cloud storage, backend services, and tenants.
-  </Card>
-  <Card title="Web Application Vulnerabilities" href="/docs/web-vulnerabilities/nuclei">
-    Testing for specific web app vulnerability classes.
-  </Card>
-  <Card title="Network & Certificate Intelligence" href="/docs/network-cert-intelligence/cipher-suites">
-    Certificate, WHOIS, IP, and domain intelligence lookups.
-  </Card>
   <Card title="Reverse Shells & Payloads" href="/docs/reverse-shells/generator">
     Generate copy-ready reverse shell one-liners from an IP and port.
   </Card>
   <Card title="Playbooks & Workflows" href="/docs/playbooks/fuzzing-scanning-pipeline">
-    Recipes that chain multiple separate CLI tools into one pipeline.
+    Recipes that chain multiple separate CLI tools into one pipeline,
+    spanning more than one WSTG chapter each.
   </Card>
   <Card title="AI Prompts" href="/docs/ai-prompts/security-audit-prompt">
     Prompt techniques for using AI coding assistants in security work.

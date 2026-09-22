@@ -1,0 +1,4 @@
+{
+  "title": "Cloud & Storage Enumeration",
+  "pages": ["bucket-enumeration", "firebase-enumeration"]
+}

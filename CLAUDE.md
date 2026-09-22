@@ -33,18 +33,25 @@ adding/editing MDX under `content/docs/`, not touching the four files that
 wire Fumadocs to Next.js's App Router:
 
 - `lib/source.ts` — defines the Fumadocs MDX content source (`content/docs`)
-  and exposes it as `source`.
+  and exposes it as `source`. Extends the default `pageSchema` (from
+  `fumadocs-core/source/schema`) with optional `wstg`/`wstgTitle`
+  frontmatter fields (see "OWASP WSTG codes" below).
 - `app/docs/[[...slug]]/page.tsx` — the single catch-all route that renders
   every doc page via `source.getPage()` + `generateStaticParams()`. Also
-  wraps each page's MDX body in `CommandChannelProvider` (see item 6 below).
+  wraps each page's MDX body in `CommandChannelProvider` (see item 6 below),
+  and renders a `<WstgBadge>` under the title when `page.data.wstg` is set.
 - `app/docs/layout.tsx` — the docs sidebar layout, built from `source`'s page
   tree.
 - `components/mdx.tsx` — registers MDX components (`Callout`, `Card`,
-  `Cards`, `CommandInput`, `ReverseShellGenerator`, plus Fumadocs' defaults)
-  globally for all `.mdx` files via `getMDXComponents()`.
+  `Cards`, `CommandInput`, `ReverseShellGenerator`, `GoogleDorks`, plus
+  Fumadocs' defaults) globally for all `.mdx` files via
+  `getMDXComponents()`. `WstgBadge` (`components/wstg-badge.tsx`) is
+  frontmatter-driven and rendered directly in `page.tsx` instead, so it is
+  *not* in this list — content authors never call it from MDX.
 
-`lib/layout.shared.tsx` holds nav config (site title, top-level links) shared
-between the home layout and the docs layout.
+`lib/layout.shared.tsx` holds nav config (site title, top-level links —
+including an external link to the OWASP WSTG itself) shared between the
+home layout and the docs layout.
 
 ### Content structure and sidebar ordering
 
@@ -52,26 +59,39 @@ Each `content/docs/<category>/` folder needs its own `meta.json` listing
 page filenames (without `.mdx`) in sidebar order — a page not listed there
 won't appear in the sidebar even if the `.mdx` file exists. The root
 `content/docs/meta.json` orders the category folders themselves and can
-insert separator labels (e.g. `"---Reconnaissance---"`).
+insert separator labels (e.g. `"---OWASP WSTG Reference---"`). A category
+can nest subfolders (each with its own `meta.json`) to group related pages
+under a collapsible sidebar heading instead of listing everything flat —
+used throughout `wstg-information-gathering/` (see taxonomy table below).
 
 ### Category taxonomy — read before adding a page
 
-Single-tool manuals and playbooks (recipes chaining several *separate* CLI
-tools, each step's output feeding the next) are deliberately kept in
-separate categories so a playbook is never mistaken for one tool's
-reference:
+The taxonomy is built around the
+[OWASP Web Security Testing Guide](https://wstg.owasp.org/latest/) (WSTG):
+every category that corresponds to a WSTG chapter is named `wstg-<chapter>/`
+on disk (e.g. `wstg-information-gathering/`), but its `meta.json` `title` is
+a plain, code-free name (e.g. `"Information Gathering"`, not `"Information
+Gathering (WSTG-INFO)"`) — the sidebar stays free of WSTG jargon, and the
+chapter code only surfaces on the individual pages themselves via the
+`WstgBadge` (see "OWASP WSTG codes" below). Only WSTG chapters
+this reference actually has tool content for get a folder — do **not**
+create an empty/placeholder folder for a WSTG chapter with nothing in it
+yet (currently missing: Authentication, Authorization, Session Management,
+Error Handling, Business Logic, WebAssembly). A handful of categories fall
+outside WSTG's testing methodology entirely (exploitation, cross-cutting
+resources, multi-chapter playbooks) and are deliberately kept as separate,
+non-`wstg-`-prefixed folders instead of forced into a chapter:
 
 | Category | Contents |
 | --- | --- |
-| Wordlists & Resources | SecLists, Alterx |
-| Subdomain & Attack Surface Discovery | Overview, Amass, BBOT, Gobuster (DNS mode), FFUF (subdomain mode) |
-| Port & Service Scanning | Nmap |
-| Web Content & Directory Fuzzing | Gobuster (dir mode), Dirsearch, FFUF (dir mode) |
-| API Fuzzing & Enumeration | Swagger/OpenAPI discovery, Kiterunner, Arjun, GraphQL introspection |
-| Cloud & Identity Enumeration | Azure AD / Entra ID enumeration, Bucket enumeration, Firebase enumeration |
-| Web Application Vulnerabilities | Nuclei, CORS (Corsy), Code injection probe, LFI |
-| Network & Certificate Intelligence | Cipher Suites, Certificates, Whois, IP, Domains |
-| Web Application Firewall | Cloudflare |
+| Information Gathering — `wstg-information-gathering/` (**WSTG-INFO**) | `overview`; subfolder `attack-surface-discovery/`: Amass, BBOT, Gobuster (DNS mode), FFUF (subdomain mode), Google Dorking; subfolder `content-discovery/`: Gobuster (dir mode), Dirsearch, FFUF (dir mode); subfolder `fingerprinting/`: Nmap; subfolder `network-intel/`: Whois, IP, Domains |
+| Configuration & Deployment Management — `wstg-configuration-management/` (**WSTG-CONF**) | subfolder `cloud-storage/`: Bucket enumeration, Firebase enumeration; Cloudflare; Nuclei (general misconfig/CVE scanner — spans multiple WSTG chapters, filed here) |
+| Identity Management — `wstg-identity-management/` (**WSTG-IDNT**) | Azure AD / Entra ID tenant enumeration |
+| Cryptography — `wstg-cryptography/` (**WSTG-CRYP**) | Cipher Suites, Certificates |
+| Input Validation — `wstg-input-validation/` (**WSTG-INPV**) | Code injection probe, LFI |
+| Client-side Testing — `wstg-client-side/` (**WSTG-CLNT**) | CORS (Corsy) |
+| API Testing — `wstg-api-testing/` (**WSTG-APIT**) | Swagger/OpenAPI discovery, Kiterunner, Arjun, GraphQL introspection |
+| Wordlists & Resources (`content/docs/wordlists-resources/`) | SecLists, Alterx |
 | Reverse Shells & Payloads (`content/docs/reverse-shells/`) | Reverse shell one-liner generator |
 | Playbooks & Workflows (`content/docs/playbooks/`) | Fuzzing & scanning pipeline (Chaos→HTTPX→Naabu→Nmap), Nmap→HTML report (nmap2html), CORS mass hunting, HTTrack+TruffleHog, Wayback+uro archived-file discovery, Git exposure discovery & extraction (curl→FFUF→git→HTTPX→git-dumper) |
 | AI Prompts (`content/docs/ai-prompts/`) | Prompt techniques for using AI coding assistants in security work |
@@ -83,8 +103,25 @@ rather than re-documenting the same flags twice — and if it would have
 nothing left but such pointers, remove it instead of keeping it as a stub
 (this happened to a "Subdirectory Enumeration" decision guide once its
 Gobuster/FFUF content moved to their own pages). Every playbook page opens
-with a `<Callout type="info" title="Playbook">` naming the tools it chains
-and linking to each one's page.
+with a `<Callout type="info" title="Playbook">` naming the tools it chains,
+linking to each one's page, and noting which WSTG chapter(s) it relates to
+in plain text (e.g. "Relates to **WSTG-CLNT-07**") — playbooks span more
+than one chapter, so they use a text mention rather than the `WstgBadge`
+component, which is reserved for single-chapter tool pages.
+
+### OWASP WSTG codes
+
+A tool page filed under a `wstg-*/` category should carry `wstg` (e.g.
+`"WSTG-INFO-04"`) and `wstgTitle` (e.g. `"Attack Surface Identification"`)
+frontmatter fields, matching the exact chapter/test-case names from
+https://wstg.owasp.org/latest/. `page.tsx` renders these as a colored
+`<WstgBadge>` pill (`components/wstg-badge.tsx`, colored by chapter prefix)
+linking back to that chapter on the WSTG site — content authors set the
+frontmatter fields only, never call the component directly. A page whose
+scope doesn't map to one specific test case (e.g. Nuclei) can still use a
+chapter-level code with no numeric suffix (`"WSTG-CONF"`) plus a
+descriptive `wstgTitle`. Pages outside the `wstg-*/` categories omit both
+fields.
 
 If source material is missing (an unrecoverable embedded bookmark, a tool
 mentioned but never given its own page) or wrong (a typo'd flag, an
@@ -93,8 +130,13 @@ command, flag, or link that wasn't in the source.
 
 ### Adding a new tool or playbook page
 
-1. Pick (or create) a category folder under `content/docs/`.
-2. Add `<slug>.mdx` with frontmatter: `title` and `description`.
+1. Pick (or create) a category folder under `content/docs/` — a `wstg-*/`
+   one (nesting a subfolder if it groups with existing related pages) if
+   the page matches a WSTG chapter this site already covers, otherwise one
+   of the non-WSTG categories (see taxonomy table above). Don't create a
+   new `wstg-*/` folder for a chapter with no other content yet.
+2. Add `<slug>.mdx` with frontmatter: `title`, `description`, and — for a
+   `wstg-*/` page — `wstg`/`wstgTitle` (see "OWASP WSTG codes" above).
 3. Add the filename (without `.mdx`) to that folder's `meta.json` `pages`
    array.
 4. Use `<Callout type="info" | "warn" | "error" | "success" | "idea">` and
