@@ -6,6 +6,7 @@
     "wstg-information-gathering",
     "wstg-configuration-management",
     "wstg-identity-management",
+    "wstg-session-management",
     "wstg-cryptography",
     "wstg-input-validation",
     "wstg-client-side",

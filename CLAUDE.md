@@ -76,8 +76,8 @@ chapter code only surfaces on the individual pages themselves via the
 `WstgBadge` (see "OWASP WSTG codes" below). Only WSTG chapters
 this reference actually has tool content for get a folder — do **not**
 create an empty/placeholder folder for a WSTG chapter with nothing in it
-yet (currently missing: Authentication, Authorization, Session Management,
-Error Handling, Business Logic, WebAssembly). A handful of categories fall
+yet (currently missing: Authentication, Authorization, Error Handling,
+Business Logic, WebAssembly). A handful of categories fall
 outside WSTG's testing methodology entirely (exploitation, cross-cutting
 resources, multi-chapter playbooks) and are deliberately kept as separate,
 non-`wstg-`-prefixed folders instead of forced into a chapter:
@@ -87,6 +87,7 @@ non-`wstg-`-prefixed folders instead of forced into a chapter:
 | Information Gathering — `wstg-information-gathering/` (**WSTG-INFO**) | `overview`; subfolder `attack-surface-discovery/`: Amass, BBOT, Gobuster (DNS mode), FFUF (subdomain mode), Google Dorking; subfolder `content-discovery/`: Gobuster (dir mode), Dirsearch, FFUF (dir mode); subfolder `fingerprinting/`: Nmap; subfolder `network-intel/`: Whois, IP, Domains |
 | Configuration & Deployment Management — `wstg-configuration-management/` (**WSTG-CONF**) | subfolder `cloud-storage/`: Bucket enumeration, Firebase enumeration; Cloudflare; Nuclei (general misconfig/CVE scanner — spans multiple WSTG chapters, filed here) |
 | Identity Management — `wstg-identity-management/` (**WSTG-IDNT**) | Azure AD / Entra ID tenant enumeration |
+| Session Management — `wstg-session-management/` (**WSTG-SESS**) | Session Fixation |
 | Cryptography — `wstg-cryptography/` (**WSTG-CRYP**) | Cipher Suites, Certificates |
 | Input Validation — `wstg-input-validation/` (**WSTG-INPV**) | Code injection probe, LFI |
 | Client-side Testing — `wstg-client-side/` (**WSTG-CLNT**) | CORS (Corsy) |

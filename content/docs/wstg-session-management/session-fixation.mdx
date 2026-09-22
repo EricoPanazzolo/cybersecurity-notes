@@ -1,0 +1,115 @@
+---
+title: Session Fixation
+description: Forcing a known session identifier into a victim's browser so it's still valid after they authenticate.
+wstg: "WSTG-SESS-03"
+wstgTitle: "Session Fixation"
+---
+
+**Session fixation** happens when an application keeps the same session
+identifier before and after login instead of issuing a fresh one once the
+user authenticates. Some apps set a session cookie the moment a visitor
+arrives — e.g. to track an anonymous shopping cart — and never rotate it
+at login. If an attacker can get a *known* session ID into a victim's
+browser and that ID survives authentication unchanged, the attacker can
+reuse it afterward and act as the logged-in victim.
+
+## How the attack works
+
+1. The attacker visits the target site (without logging in) and is issued
+   a valid, unauthenticated session identifier.
+2. The attacker forces that same identifier into the victim's browser —
+   e.g. a URL parameter (`?PHPSESSID=...` on older apps), a crafted link,
+   an XSS payload that sets the cookie, or a network position that can
+   inject a `Set-Cookie` header.
+3. The victim logs in normally. If the application doesn't issue a new
+   session identifier on successful authentication, the victim is now
+   authenticated *under the attacker's chosen ID*.
+4. The attacker presents that same identifier back to the site and is
+   treated as the logged-in victim — no credentials needed.
+
+<Callout type="idea" title="This is different from session hijacking">
+  Hijacking steals an *already-authenticated* session ID (e.g. via XSS or
+  network sniffing). Fixation is sneakier — the attacker chooses the ID
+  *before* the victim ever logs in, then just waits.
+</Callout>
+
+## Step 1: Check whether the session ID rotates on login
+
+The fastest signal: authenticate, and see whether the server issues a new
+`Set-Cookie` for the session. If it doesn't, the pre-login ID is still
+valid post-login — the core precondition for fixation.
+
+First, hit the login page unauthenticated and save whatever session
+cookie gets set:
+
+<CommandInput
+  vars={{ target: "target.com" }}
+  derivedVars={{ output: { from: "target", template: "session-fixation_{value}.txt" } }}
+  command={`curl -s -c {{output}} -o /dev/null https://{{target}}/login`}
+  lang="bash"
+  placeholderMode
+/>
+
+Then submit valid credentials while presenting that same cookie jar, and
+check whether the response sets a *new* session cookie:
+
+<CommandInput
+  vars={{ target: "target.com" }}
+  derivedVars={{ input: { from: "target", template: "session-fixation_{value}.txt" } }}
+  command={`curl -s -i -b {{input}} -X POST https://{{target}}/login -d "username=user&password=pass" | grep -i set-cookie`}
+  lang="bash"
+  placeholderMode
+/>
+
+`input` defaults to the first command's `output` file — edit both if you
+change either away from the default.
+
+<Callout type="warn">
+  The login endpoint, method, and field names above (`/login`,
+  `username`/`password`) are illustrative — adjust them to match the
+  target application's actual login form/API before running this.
+</Callout>
+
+If no `Set-Cookie` line appears in the second response (or it repeats the
+exact same value from step 1), the session ID was never rotated —
+authentication happened on top of the attacker-chosen identifier.
+
+## Step 2: Full forced-cookie test (confirming exploitability)
+
+The check above shows the *precondition*; this confirms it's actually
+exploitable end-to-end. Use two test accounts — one as "victim," one as
+"attacker" — ideally from two different browsers/machines:
+
+1. Load the login page and save the pre-login cookie jar (as "attacker").
+2. Log in as the **victim** and reach a page that requires authentication
+   (note what it looks like when authenticated).
+3. Reset the cookie jar back to the pre-login snapshot from step 1.
+4. Request that same authenticated page again using the reset jar.
+5. If it renders as the logged-in victim, the ID from step 1 remained
+   valid straight through the victim's login — **session fixation
+   confirmed**.
+
+<Callout type="warn">
+  Only run this against targets you're authorized to test, and only using
+  your own test accounts — this is a real account-takeover technique, not
+  just a diagnostic.
+</Callout>
+
+## Remediation
+
+- Issue a brand-new session identifier immediately after successful
+  authentication (invalidate the old one server-side first).
+- Never accept a session ID supplied via URL parameter.
+- Add the `__Host-` or `__Secure-` prefix to the session cookie name, or
+  enforce full HSTS (including subdomains) — either makes it much harder
+  for a network attacker to inject a forced cookie in the first place.
+
+## Tools
+
+- [OWASP ZAP](https://www.zaproxy.org)
+
+## References
+
+- [Session Fixation — OWASP Community](https://owasp.org/www-community/attacks/Session_fixation)
+- [Session Fixation Vulnerability in Web-based Applications — ACROS Security](https://www.acrossecurity.com/papers/session_fixation.pdf)
+- [Foiling Session Fixation Attacks in Tomcat — Chris Shiflett](https://shiflett.org/articles/session-fixation)
