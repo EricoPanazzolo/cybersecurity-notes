@@ -1,10 +1,9 @@
 ---
 title: IP (Censys)
-description: Host/IP intelligence — finding a target's real IP behind a proxy or CDN.
+description: Host/IP intelligence via Censys Search.
 ---
 
-General host/IP intelligence — including finding a target's real origin
-server IP when it's fronted by a CDN or reverse proxy like Cloudflare.
+General host/IP intelligence via Censys Search.
 
 ## Tools
 
@@ -15,42 +14,9 @@ services/certificates. Useful for finding all hosts using a specific
 certificate, open service, or banner across the entire internet — good for
 asset discovery and finding shadow IT.
 
-#### Query: find the real origin IP behind Cloudflare
-
-<CommandInput
-  vars={{ target_domain: "example.com" }}
-  command={`(({{target_domain}}) and not (host.services.software.vendor = "cloudflare" or web.software.vendor = "cloudflare")) and host.ip: *`}
-  lang="text"
-  placeholderMode
-/>
-
-**What it does:**
-
-- `(target_domain)` — matches hosts/certificates Censys associates with the
-  target domain (fill in the `target_domain` field above with the actual
-  domain, e.g. `example.com`).
-- `not (host.services.software.vendor = "cloudflare" or web.software.vendor = "cloudflare")`
-  — excludes any result where Censys has fingerprinted Cloudflare as the
-  service or web software, i.e. filters out hosts that are just Cloudflare's
-  edge/proxy.
-- `and host.ip: *` — requires the result to actually have a host IP indexed
-  (filters out incomplete/certificate-only records with no resolvable host).
-
-**What it's used for:** Many sites hide their real server behind Cloudflare,
-so scanning the domain directly only ever hits Cloudflare's reverse proxy,
-not the actual origin server. This query searches Censys's index for any
-host tied to the domain (via matching certificates, hostnames, etc.) that is
-**not** itself a Cloudflare-fingerprinted service — in other words, a
-candidate for the real origin IP. This matters because the origin server,
-once found, may be reachable directly (bypassing Cloudflare's
-WAF/rate-limiting/DDoS protection entirely) if it isn't properly firewalled
-to only accept traffic from Cloudflare's IP ranges.
-
-<Callout type="info">
-  A match here is a lead, not proof — always verify a candidate IP actually
-  serves the target's content (e.g. by requesting it directly with the
-  right `Host` header) before treating it as the confirmed origin.
-</Callout>
+See [Cloudflare](/docs/web-application-firewall/cloudflare) for a Censys
+Search query built on this tool that finds a target's real origin IP behind
+Cloudflare.
 
 See [Whois](/docs/network-cert-intelligence/whois) for basic IP/DNS info bundled
 into a domain's WHOIS record.

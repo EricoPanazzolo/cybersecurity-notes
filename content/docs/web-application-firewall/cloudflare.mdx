@@ -39,12 +39,46 @@ sits behind Cloudflare:
 
 ## Finding the real origin IP
 
-See [IP (Censys)](/docs/network-cert-intelligence/ip) for the Censys Search
-query used to find a target's real origin IP behind Cloudflare — it
-excludes Cloudflare-fingerprinted hosts so what's left are candidate origin
-IPs, which may be reachable directly (bypassing Cloudflare's
-WAF/rate-limiting/DDoS protection) if not properly firewalled to only
-accept Cloudflare's IP ranges.
+### Censys Search
+
+See [IP (Censys)](/docs/network-cert-intelligence/ip) for background on this
+tool. The query below searches Censys's index for a host tied to the target
+domain that is **not** itself a Cloudflare-fingerprinted service — in other
+words, a candidate for the real origin IP.
+
+#### Query: find the real origin IP behind Cloudflare
+
+<CommandInput
+  vars={{ target_domain: "example.com" }}
+  command={`(({{target_domain}}) and not (host.services.software.vendor = "cloudflare" or web.software.vendor = "cloudflare")) and host.ip: *`}
+  lang="text"
+  placeholderMode
+/>
+
+**What it does:**
+
+- `(target_domain)` — matches hosts/certificates Censys associates with the
+  target domain (fill in the `target_domain` field above with the actual
+  domain, e.g. `example.com`).
+- `not (host.services.software.vendor = "cloudflare" or web.software.vendor = "cloudflare")`
+  — excludes any result where Censys has fingerprinted Cloudflare as the
+  service or web software, i.e. filters out hosts that are just Cloudflare's
+  edge/proxy.
+- `and host.ip: *` — requires the result to actually have a host IP indexed
+  (filters out incomplete/certificate-only records with no resolvable host).
+
+**What it's used for:** Many sites hide their real server behind Cloudflare,
+so scanning the domain directly only ever hits Cloudflare's reverse proxy,
+not the actual origin server. This matters because the origin server, once
+found, may be reachable directly (bypassing Cloudflare's
+WAF/rate-limiting/DDoS protection entirely) if it isn't properly firewalled
+to only accept traffic from Cloudflare's IP ranges.
+
+<Callout type="info">
+  A match here is a lead, not proof — always verify a candidate IP actually
+  serves the target's content (e.g. by requesting it directly with the
+  right `Host` header) before treating it as the confirmed origin.
+</Callout>
 
 ## Bypassing the WAF file-upload filter (body-padding technique)
 
