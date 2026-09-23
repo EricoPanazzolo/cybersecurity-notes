@@ -18,6 +18,7 @@ const CODE_PATHS: Record<string, string> = {
   "WSTG-IDNT-04":
     "03-Identity_Management/04-Account_Enumeration_and_Guessable_User_Account",
   "WSTG-CRYP-01": "09-Weak_Cryptography/01-Weak_Transport_Layer_Security",
+  "WSTG-SESS-10": "06-Session_Management/10-JSON_Web_Tokens",
   "WSTG-INPV-11": "07-Injection/11-Code_Injection",
   "WSTG-INPV-11.1": "07-Injection/11.1-File_Inclusion",
   "WSTG-CLNT-07": "11-Client-side/07-Cross_Origin_Resource_Sharing",
@@ -30,6 +31,7 @@ const CHAPTER_COLORS: Record<string, string> = {
   CONF: "bg-purple-500/10 text-purple-700 ring-purple-500/25 dark:text-purple-400",
   IDNT: "bg-teal-500/10 text-teal-700 ring-teal-500/25 dark:text-teal-400",
   CRYP: "bg-amber-500/10 text-amber-700 ring-amber-500/25 dark:text-amber-400",
+  SESS: "bg-emerald-500/10 text-emerald-700 ring-emerald-500/25 dark:text-emerald-400",
   INPV: "bg-red-500/10 text-red-700 ring-red-500/25 dark:text-red-400",
   CLNT: "bg-pink-500/10 text-pink-700 ring-pink-500/25 dark:text-pink-400",
   APIT: "bg-cyan-500/10 text-cyan-700 ring-cyan-500/25 dark:text-cyan-400",
