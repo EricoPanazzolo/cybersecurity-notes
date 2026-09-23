@@ -11,6 +11,19 @@ body {
   font-weight: 500;
 }
 
+/* Higher-contrast sidebar links — catppuccin's muted-foreground is too
+   faded for a dense nav tree. Scoped to the sidebar so page body text
+   keeps the theme defaults. */
+#nd-sidebar {
+  --color-fd-muted-foreground: hsl(235, 25%, 14%);
+  --color-fd-accent-foreground: hsl(235, 25%, 14%);
+}
+
+.dark #nd-sidebar {
+  --color-fd-muted-foreground: hsl(226, 50%, 86%);
+  --color-fd-accent-foreground: hsl(226, 64%, 88%);
+}
+
 /* Sidebar section separators (e.g. "Reconnaissance", "Exploitation") */
 #nd-sidebar p {
   color: var(--color-fd-primary);

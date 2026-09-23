@@ -19,6 +19,7 @@ const CODE_PATHS: Record<string, string> = {
     "03-Identity_Management/04-Account_Enumeration_and_Guessable_User_Account",
   "WSTG-SESS-03": "06-Session_Management/03-Session_Fixation",
   "WSTG-CRYP-01": "09-Weak_Cryptography/01-Weak_Transport_Layer_Security",
+  "WSTG-SESS-10": "06-Session_Management/10-JSON_Web_Tokens",
   "WSTG-INPV-11": "07-Injection/11-Code_Injection",
   "WSTG-INPV-11.1": "07-Injection/11.1-File_Inclusion",
   "WSTG-CLNT-07": "11-Client-side/07-Cross_Origin_Resource_Sharing",

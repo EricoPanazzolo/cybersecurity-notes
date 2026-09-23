@@ -1,0 +1,73 @@
+---
+title: JWT Decoder & Verifier
+description: Decode, inspect, and verify JSON Web Tokens — jwt.io plus zero-install terminal recipes.
+wstg: "WSTG-SESS-10"
+wstgTitle: "Testing JSON Web Tokens"
+---
+
+For interactive decoding, signature verification (HMAC / RSA / ECDSA), and
+live tampering in the browser, use **jwt.io** — the reference tool. The
+terminal recipes further down cover quick offline decoding on a target box
+where you don't want to paste a real token into a hosted site.
+
+<Cards>
+  <Card title="jwt.io — JWT Debugger ↗" href="https://jwt.io/">
+    Decode, verify, and edit tokens in the browser (header · payload ·
+    signature).
+  </Card>
+</Cards>
+
+
+## Decode from the terminal
+
+Paste a token below to decode its **header and payload** on the command line.
+This pure-shell pipe converts base64url to standard base64, then uses `jq` to
+base64-decode and pretty-print each part — no dedicated JWT tool required
+(only `jq`):
+
+<CommandInput
+  placeholderMode
+  vars={{
+    token:
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwicm9sZSI6InVzZXIiLCJpYXQiOjE1MTYyMzkwMjJ9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+  }}
+  command={`echo "{{token}}" | tr '_-' '/+' | jq -R 'split(".") | .[0],.[1] | @base64d | fromjson'`}
+/>
+
+<Callout type="info" title="Decode only">
+  This one-liner just **decodes** the header and payload. For signature
+  verification, secret cracking, or `alg`-confusion tampering, use
+  [jwt.io](https://jwt.io/).
+</Callout>
+
+## What to look for
+
+- **`alg: none`** — if the server accepts an unsigned token, an attacker can
+  forge any claims. Try stripping the signature and setting the header
+  algorithm to `none`.
+- **Algorithm confusion (RS256 → HS256)** — if a server verifies with a
+  fixed key but trusts the token's own `alg`, an attacker can re-sign an
+  RS256 token as HS256 using the *public* key as the HMAC secret. On
+  [jwt.io](https://jwt.io/), paste the known public key as the secret and
+  check whether it verifies.
+- **Weak HMAC secrets** — HS256 tokens signed with a guessable secret can be
+  cracked offline (e.g. `hashcat -m 16500`).
+- **Sensitive claims** — the decoded payload often leaks roles, user IDs,
+  emails, or internal identifiers. Check for privilege claims (`role`,
+  `admin`, `scope`) you might tamper with.
+- **Expiry handling** — check whether `exp` is in the past, then confirm the
+  server actually rejects expired tokens.
+
+## Supported algorithms
+
+| Family | Algorithms | Key to provide |
+| --- | --- | --- |
+| HMAC | HS256, HS384, HS512 | Shared secret (plain text) |
+| RSA | RS256/384/512, PS256/384/512 | Public key (SPKI PEM) |
+| ECDSA | ES256, ES384, ES512 | Public key (SPKI PEM) |
+
+<Callout type="info" title="Signature attacks">
+  For tampering and `alg`-confusion checks, use [jwt.io](https://jwt.io/).
+  To crack a weak HS256 secret offline, run `hashcat -m 16500` against a
+  wordlist.
+</Callout>

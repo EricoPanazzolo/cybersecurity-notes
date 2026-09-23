@@ -2,6 +2,9 @@
   "title": "Cybersecurity Personal Notes",
   "pages": [
     "index",
+    "---Tools---",
+    "[JWT Decoder & Verifier](/docs/wstg-session-management/jwt)",
+    "[Reverse Shell Generator](/docs/reverse-shells/generator)",
     "---OWASP WSTG Reference---",
     "wstg-information-gathering",
     "wstg-configuration-management",

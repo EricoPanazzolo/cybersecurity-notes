@@ -15,6 +15,11 @@ export function baseOptions(): BaseLayoutProps {
         url: 'https://wstg.owasp.org/latest/',
         external: true,
       },
+      {
+        text: 'jwt.io',
+        url: 'https://jwt.io/',
+        external: true,
+      },
     ],
   };
 }

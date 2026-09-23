@@ -1,4 +1,4 @@
 {
   "title": "Session Management",
-  "pages": ["session-fixation"]
+  "pages": ["session-fixation", "jwt"]
 }
