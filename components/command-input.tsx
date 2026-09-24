@@ -51,7 +51,10 @@ type DerivedVarConfig =
   | {
       /** Name of the source var this one tracks until manually edited. */
       from: string;
-      /** Template for the derived default; `{value}` is replaced by the source var's current value. */
+      /**
+       * Template for the derived default; `{value}` is replaced by the source
+       * var's current value, `{stem}` by that value minus its extension.
+       */
       template: string;
     }
   | {
@@ -132,10 +135,10 @@ export function CommandInput({
       if ("channel" in config) {
         next[name] = channelCtx?.values[config.channel] ?? vars[name] ?? "";
       } else {
-        next[name] = config.template.replace(
-          "{value}",
-          sanitizeForFilename(next[config.from] ?? ""),
-        );
+        const value = sanitizeForFilename(next[config.from] ?? "");
+        next[name] = config.template
+          .replace("{value}", value)
+          .replace("{stem}", value.replace(/\.[^.]+$/, ""));
       }
     }
     return next;

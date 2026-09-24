@@ -1,4 +1,4 @@
 {
   "title": "Configuration & Deployment Management",
-  "pages": ["cloud-storage", "cloudflare", "nuclei"]
+  "pages": ["cloud-storage", "cloudflare", "security-headers", "nuclei"]
 }

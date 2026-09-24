@@ -1,0 +1,104 @@
+---
+title: Security Headers
+description: Checking a site's HTTP security response headers, by hand and with securityheaders.com.
+wstg: "WSTG-CONF"
+wstgTitle: "HTTP Security Response Headers"
+---
+
+HTTP security response headers tell the browser how to behave around a
+site's content — whether to allow framing, enforce HTTPS, block MIME
+sniffing, and so on. Missing or weak headers rarely constitute a
+vulnerability on their own, but they weaken the defences against XSS,
+clickjacking, protocol downgrade, and information-disclosure attacks, so
+they belong in every configuration review.
+
+<Callout type="info">
+  This overlaps several WSTG-CONF test cases rather than one — notably
+  **WSTG-CONF-07** (HTTP Strict Transport Security) and **WSTG-CONF-12**
+  (Content Security Policy). See the OWASP references below for the
+  authoritative per-header guidance.
+</Callout>
+
+## Dump the headers by hand
+
+<CommandInput
+  vars={{ target: "https://example.com" }}
+  command={`curl -sSI "{{target}}"`}
+  lang="bash"
+  placeholderMode
+/>
+
+- `-s` silences the progress meter, `-S` still shows errors.
+- `-I` fetches only the response headers (a `HEAD` request).
+
+Add `-L` to follow redirects to the final page (headers on a `301`/`302`
+often differ from the destination's), or swap `-I` for `-D - -o /dev/null`
+if the server rejects `HEAD`.
+
+## Scan with securityheaders.com
+
+[securityheaders.com](https://securityheaders.com/) (by Scott Helme) grades
+a site's headers A–F and explains each missing or misconfigured one. Open
+it in a browser, or build the scan URL directly:
+
+<CommandInput
+  vars={{ target: "https://example.com" }}
+  command={`https://securityheaders.com/?q={{target}}&followRedirects=on&hide=on`}
+  lang="text"
+  placeholderMode
+/>
+
+- `followRedirects=on` — grade the final destination after redirects.
+- `hide=on` — keep the result off the site's public "latest scans" list.
+
+<Callout type="warn">
+  securityheaders.com is a third-party service — submitting a URL sends it
+  (and the fact you're testing it) to an external server. For an
+  authorized engagement where that disclosure matters, prefer the local
+  `curl` check above.
+</Callout>
+
+## Headers to check
+
+Recommended values below follow the OWASP
+[HTTP Security Response Headers Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html).
+
+| Header | Recommended value | Guards against |
+| --- | --- | --- |
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` | Protocol downgrade / SSL stripping (WSTG-CONF-07). |
+| `Content-Security-Policy` | Site-specific allowlist | XSS, data injection (WSTG-CONF-12). |
+| `X-Frame-Options` | `DENY` | Clickjacking (superseded by CSP `frame-ancestors`). |
+| `X-Content-Type-Options` | `nosniff` | MIME-type sniffing. |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Referrer leakage. |
+| `Permissions-Policy` | `geolocation=(), camera=(), microphone=()` | Unwanted use of browser features. |
+| `Cross-Origin-Opener-Policy` | `same-origin` | Cross-origin window references (Spectre-class). |
+| `Cross-Origin-Embedder-Policy` | `require-corp` | Loading cross-origin resources without opt-in. |
+| `Cross-Origin-Resource-Policy` | `same-site` | Cross-origin resource inclusion. |
+| `Cache-Control` | `no-store` (for sensitive data) | Caching of sensitive responses. |
+| `Server` / `X-Powered-By` | Remove or make non-informative | Technology-stack disclosure. |
+
+<Callout type="info">
+  `X-XSS-Protection` and `Expect-CT` are deprecated — the cheat sheet
+  recommends `X-XSS-Protection: 0` (disabled) and dropping `Expect-CT`
+  entirely. Flag their presence as legacy config, not as a fix.
+</Callout>
+
+## OWASP references
+
+<Cards>
+  <Card
+    title="OWASP Secure Headers Project"
+    href="https://owasp.org/www-project-secure-headers/"
+  >
+    Per-header guidance, a validator, and adoption statistics.
+  </Card>
+  <Card
+    title="HTTP Security Response Headers Cheat Sheet"
+    href="https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html"
+  >
+    Recommended values and rationale for every header above.
+  </Card>
+  <Card title="securityheaders.com" href="https://securityheaders.com/">
+    Scott Helme's online header grader.
+  </Card>
+</Cards>

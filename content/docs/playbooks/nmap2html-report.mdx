@@ -19,7 +19,9 @@ description: Turn an Nmap XML scan into a self-contained, interactive HTML repor
 ## Step 1 — Scan with Nmap, save XML output
 
 <CommandInput
-  vars={{ target: "10.10.10.10", output: "nmap_10.10.10.10.xml" }}
+  vars={{ target: "10.10.10.10" }}
+  derivedVars={{ output: { from: "target", template: "nmap_{value}.xml" } }}
+  publishChannel="nmap-xml"
   command={`nmap -sV -sC -A {{target}} -oX {{output}}`}
   placeholderMode
 />
@@ -34,11 +36,12 @@ plain-text or grepable formats.
 
 ## Step 2 — Generate the HTML report
 
-`input` defaults to the XML file Step 1 saved — edit both if you change
-either away from the default.
+`input` tracks Step 1's `output` field above live — edit it directly here
+to break the link.
 
 <CommandInput
   vars={{ input: "nmap_10.10.10.10.xml" }}
+  derivedVars={{ input: { channel: "nmap-xml" } }}
   command={`python3 nmap2html.py {{input}}`}
   placeholderMode
 />
@@ -48,7 +51,11 @@ By default this writes `<name>.html` next to the input file, plus
 file instead:
 
 <CommandInput
-  vars={{ input: "nmap_10.10.10.10.xml", output: "assessment.html" }}
+  vars={{ input: "nmap_10.10.10.10.xml" }}
+  derivedVars={{
+    input: { channel: "nmap-xml" },
+    output: { from: "input", template: "{stem}.html" },
+  }}
   command={`python3 nmap2html.py {{input}} -o {{output}}`}
   placeholderMode
 />

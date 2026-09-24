@@ -18,7 +18,7 @@ etc.
   vars={{ target: "domain.com" }}
   derivedVars={{ output: { from: "target", template: "enum_{value}" } }}
   command={`bbot -t {{target}} \\
-  -p subdomain-enum cloud-enum nuclei-budget webbrute spider web \\
+  -p subdomain-enum cloud-enum nuclei webbrute spider web \\
   -n {{output}} \\
   -y \\
   -o .`}
@@ -41,19 +41,20 @@ etc.
 | --- | --- |
 | **subdomain-enum** | The foundation. Passive API sources (crt.sh, certspotter, rapiddns, hackertarget, dnsdumpster, subdomaincenter, urlscan, etc.) plus active DNS brute-force via `dnsbrute`/`dnsbrute_mutations` (massdns + wordlist — tagged `loud`, so this is not purely passive). Everything else in the scan builds on the subdomains this finds. |
 | **cloud-enum** | Cloud storage bucket checks — AWS S3, Google Cloud Storage, Azure/Microsoft, DigitalOcean Spaces, Firebase, Hetzner Object Storage — plus generic bucket/file enumeration, run against the target and any subdomains `subdomain-enum` discovers. |
-| **nuclei-budget** | Runs [Nuclei](https://github.com/projectdiscovery/nuclei) in `budget` mode instead of the full template set — caps requests-per-host (`budget` module option) so vulnerability-template scanning stays bounded rather than exhaustive. `nuclei` itself is tagged `invasive`. |
+| **nuclei** | Runs [Nuclei](https://github.com/projectdiscovery/nuclei) against every discovered web target with its full template set — no per-host request cap, unlike the lighter `nuclei-budget` preset. Thorough but noisy; `nuclei` itself is tagged `invasive`. |
 | **webbrute** | Directory/content brute-force, surface-level only (no recursion). Finds hidden paths the spider wouldn't surface on its own. |
-| **spider** | Recursive crawler — follows links and feeds newly-discovered URLs to `nuclei-budget` and `webbrute` downstream. |
+| **spider** | Recursive crawler — follows links and feeds newly-discovered URLs to `nuclei` and `webbrute` downstream. |
 | **web** | Non-intrusive web recon baseline: TLS cert parsing, `robots.txt`/`security.txt`, exposed `.git`, GraphQL introspection, OAuth endpoint discovery, `badsecrets` (known hardcoded framework secrets), NTLM info leak, bucket checks at the web layer. |
 
 <Callout type="warn">
   This preset combination is **active, not passive** — `subdomain-enum`
-  includes DNS brute-force (`dnsbrute`), and `nuclei-budget`/`webbrute` send
-  real probe traffic (bounded by budget mode and surface-level-only brute,
-  respectively, but still active). Make sure `-t` scope is airtight and you
+  includes DNS brute-force (`dnsbrute`), `nuclei` runs its full template set
+  against every web target, and `webbrute` sends real (surface-level-only)
+  brute-force traffic. Swap `nuclei` for `nuclei-budget` to cap Nuclei's
+  requests per host if you need a lighter run. Make sure `-t` scope is airtight and you
   have authorization before running it. Because `subdomain-enum` runs first,
   every subdomain it discovers automatically becomes a target for
-  `nuclei-budget`, `webbrute`, `spider`, and `web` in the same run — if scope
+  `nuclei`, `webbrute`, `spider`, and `web` in the same run — if scope
   is restricted to specific hosts rather than the whole domain, review
   discovered subdomains before running the active modules against them.
 </Callout>

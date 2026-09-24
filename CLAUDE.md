@@ -198,7 +198,10 @@ command, flag, or link that wasn't in the source.
    `derivedVars={{ output: { from: "domain", template: "toolname_{value}.ext" } }}`.
    Naming convention: `<toolname>_{value}.<ext>`, or
    `<toolname>-<mode>_{value}.<ext>` for a page covering more than one
-   mode/technique.
+   mode/technique. Use `{stem}` instead of `{value}` to drop the source
+   value's extension (e.g. `{stem}.html` turns `input` `scan.xml` into
+   `scan.html`); a derived var can derive from another derived var if it's
+   listed after it in `derivedVars`.
 8. Field names signal role, not tool: a block's own generated file is
    always `output`; a file it reads in (typically a prior playbook step's
    `output`) is always `input` — never reuse `output` to mean "the file
