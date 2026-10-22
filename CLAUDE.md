@@ -94,7 +94,7 @@ non-`wstg-`-prefixed folders instead of forced into a chapter:
 | API Testing — `wstg-api-testing/` (**WSTG-APIT**) | Swagger/OpenAPI discovery, Kiterunner, Arjun, GraphQL introspection |
 | Wordlists & Resources (`content/docs/wordlists-resources/`) | SecLists, Alterx |
 | Reverse Shells & Payloads (`content/docs/reverse-shells/`) | Reverse shell one-liner generator |
-| Playbooks & Workflows (`content/docs/playbooks/`) | Fuzzing & scanning pipeline (Chaos→HTTPX→Naabu→Nmap), Nmap→HTML report (nmap2html), CORS mass hunting, HTTrack+TruffleHog, Wayback+uro archived-file discovery, Git exposure discovery & extraction (curl→FFUF→git→HTTPX→git-dumper) |
+| Playbooks & Workflows (`content/docs/playbooks/`) | Fuzzing & scanning pipeline (Chaos→HTTPX→Naabu→Nmap), Nmap→HTML report (nmap2html), CORS mass hunting, HTTrack+TruffleHog, Wayback+uro archived-file discovery, Git exposure discovery & extraction (curl→FFUF→git→HTTPX→git-dumper), Git repository SAST (TruffleHog/Gitleaks→Semgrep→Trivy/OSV-Scanner→Checkov/Kubescape→sarif-tools) |
 | AI Prompts (`content/docs/ai-prompts/`) | Prompt techniques for using AI coding assistants in security work |
 
 A playbook whose commands would substantially duplicate an existing tool
