@@ -49,26 +49,29 @@ both if you change either away from the default.
 
 <CommandInput
   vars={{ input: "httrack_domain.com" }}
-  command={`trufflehog filesystem {{input}} --results=verified,unverified --json`}
+  command={`trufflehog filesystem {{input}} --results=verified,unknown --json`}
   placeholderMode
 />
 
 <Callout type="info">
-  The original command used `--results=verified,unknown`; TruffleHog's
-  actual result categories are `verified` and `unverified` — corrected
-  above.
+  TruffleHog has three result types: `verified`, `unknown` and
+  `unverified` (the default is all three, per the
+  [TruffleHog README](https://github.com/trufflesecurity/trufflehog)).
+  This command leaves out `unverified` to cut noise — use
+  `--results=verified,unverified,unknown` (or drop the flag) to see every
+  pattern match.
 </Callout>
 
 | Flag | Meaning |
 | --- | --- |
 | `filesystem` | Scan mode — scans a local directory/file path instead of a git repo or cloud bucket. |
 | `<input>` | Path to scan — here, the directory HTTrack mirrored into. |
-| `--results=verified,unverified` | Which categories of findings to return: **verified** = TruffleHog actively confirmed the secret is live/valid; **unverified** = a pattern matched but couldn't be confirmed (needs manual review). |
+| `--results=verified,unknown` | Which categories of findings to return: **verified** = TruffleHog actively confirmed the secret is live/valid; **unknown** = verification was attempted but failed due to an error (needs manual review). |
 | `--json` | Output machine-readable JSON instead of plain text. |
 
 <Callout type="warn">
   `verified` findings are high-confidence and worth immediate attention;
-  `unverified` findings need manual triage to rule out false positives (test
+  `unknown` (and `unverified`, if included) findings need manual triage to rule out false positives (test
   data, expired keys, etc.). Only mirror and scan sites you're authorized to
   test.
 </Callout>

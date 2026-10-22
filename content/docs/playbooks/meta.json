@@ -6,6 +6,7 @@
     "cors-mass-hunting",
     "httrack-trufflehog",
     "wayback-404-discovery",
-    "git-exposure-discovery"
+    "git-exposure-discovery",
+    "git-repo-sast"
   ]
 }

@@ -1,0 +1,1001 @@
+---
+title: Git Repository Static Analysis (SAST)
+description: White-box security review of a cloned git repository from any host — secret scanning over the full history, SAST, dependency (SCA) and IaC scanning, and manual git-history forensics.
+---
+
+<Callout type="info" title="Playbook">
+  This recipe chains `git`, `jq`,
+  [TruffleHog](https://github.com/trufflesecurity/trufflehog),
+  [Gitleaks](https://github.com/gitleaks/gitleaks),
+  [Semgrep](https://semgrep.dev/docs/getting-started/quickstart) (plus
+  [Bandit](https://bandit.readthedocs.io/en/latest/start.html) /
+  [gosec](https://github.com/securego/gosec) per language),
+  [Trivy](https://trivy.dev/docs/latest/getting-started/installation/),
+  [OSV-Scanner](https://google.github.io/osv-scanner/installation/),
+  [Checkov](https://www.checkov.io/2.Basics/Installing%20Checkov.html),
+  [Kubescape](https://kubescape.io/docs/install-cli/) and
+  [sarif-tools](https://github.com/microsoft/sarif-tools) into one
+  pipeline: scope the clone, scan every branch's history for secrets, run
+  SAST, SCA and IaC scanners, dig through the history by hand, then merge
+  and triage the reports. The WSTG is a black-box guide, so no single test
+  case covers source review — findings typically feed **WSTG-CONF**
+  (misconfiguration, leaked secrets), **WSTG-INPV** (injection flaws) and
+  **WSTG-CRYP** (weak cryptography).
+</Callout>
+
+A host-agnostic workflow for security-reviewing source code from **any git
+server** — GitHub, GitLab, Bitbucket, Azure DevOps, Gitea or self-hosted.
+It also works on a repo recovered with
+[Git Exposure Discovery & Extraction](/docs/playbooks/git-exposure-discovery)
+(the `git-dumper` output from its Step 4).
+
+<Callout type="warn" title="Authorization first">
+  Only assess repositories you are explicitly authorized to test. The scans
+  are read-only, but the clones, the git history and the reports can
+  contain the owner's intellectual property and **live credentials**. Treat
+  the whole working folder as sensitive (see Step 10).
+</Callout>
+
+The starting point is an **already-cloned** repository (with its `.git/`
+folder). Run the playbook once per repo. Why a clone instead of a ZIP
+download? A ZIP/tarball export holds only the current tree of one branch;
+a clone also gives you:
+
+- **History-aware secret scanning** — finds credentials that were committed
+  and later "deleted".
+- **Every branch and tag** — feature and hotfix branches often hold
+  unreviewed code and test credentials.
+- **Reproducible evidence** — every finding can cite a commit hash, author
+  and date.
+- **Diff-aware SAST** — focus on recently changed code.
+
+## Step 1 — Install and verify the tools
+
+| Tool | Purpose | Required? | Quick install |
+| --- | --- | --- | --- |
+| [git](https://git-scm.com/downloads) | Branch and history inspection, forensics | ✅ Required | `apt install git` / `brew install git` |
+| [jq](https://jqlang.org/download/) | Parsing JSON and SARIF output | ✅ Required | `apt install jq` / `brew install jq` |
+| [TruffleHog](https://github.com/trufflesecurity/trufflehog) | Secret scanning over git history, with **live verification** | ✅ Required | `brew install trufflehog`, or a binary from its Releases page |
+| [Gitleaks](https://github.com/gitleaks/gitleaks) (≥ 8.19) | Second secret-scanning engine | ✅ Required | `brew install gitleaks`, or a binary from its Releases page |
+| [Semgrep](https://semgrep.dev/docs/getting-started/quickstart) | Multi-language SAST | ✅ Required | `pipx install semgrep` / `brew install semgrep` |
+| [Trivy](https://trivy.dev/docs/latest/getting-started/installation/) | SCA (dependency CVEs) plus IaC/config scanning | ✅ Required | `brew install trivy` |
+| [OSV-Scanner](https://google.github.io/osv-scanner/installation/) | Second SCA engine (OSV database) | ⭐ Recommended | `brew install osv-scanner` or `go install github.com/google/osv-scanner/v2/cmd/osv-scanner@latest` |
+| [Checkov](https://www.checkov.io/2.Basics/Installing%20Checkov.html) | Deep IaC policy scanning (Terraform, K8s, CloudFormation, Helm, Dockerfile, CI configs) | ⭐ Recommended | `pipx install checkov` |
+| [Kubescape](https://kubescape.io/docs/install-cli/) | Kubernetes manifest posture (NSA/MITRE frameworks) | ➖ If K8s manifests exist | see install docs |
+| [Bandit](https://bandit.readthedocs.io/en/latest/start.html) | Python-specific SAST | ➖ If Python exists | `pipx install "bandit[sarif]"` |
+| [gosec](https://github.com/securego/gosec) | Go-specific SAST | ➖ If Go exists | `go install github.com/securego/gosec/v2/cmd/gosec@latest` |
+| [sarif-tools](https://github.com/microsoft/sarif-tools) | Merging and summarizing SARIF reports | ⭐ Recommended | `pipx install sarif-tools` |
+| [pipx](https://github.com/pypa/pipx) | Isolated installs of the Python-based tools above | Helper | `apt install pipx` / `brew install pipx` |
+
+<Callout type="info" title="Corrections to the source notes">
+  - **Bandit:** the source installed plain `bandit`, but Bandit's SARIF
+    formatter (`-f sarif`, used in Step 5) ships as an extra — install
+    `bandit[sarif]` as shown above, per
+    [Bandit's docs](https://bandit.readthedocs.io/en/latest/start.html).
+  - **Dead links:** the source's Trivy install link
+    (`trivy.dev/latest/getting-started/installation/`) and pipx install
+    link (`pipx.pypa.io/stable/installation/`) both return 404 — replaced
+    with the working pages linked in the table.
+</Callout>
+
+<Callout type="warn">
+  TruffleHog, Trivy and Kubescape also offer `curl ... | sh` install
+  scripts (see each tool's install docs). Piping a remote script into a
+  shell runs code you haven't read — on an assessment box, prefer a package
+  manager or a release binary whose checksum you have verified.
+</Callout>
+
+### Check that everything is installed
+
+Save as `check-tools.sh` and run `bash check-tools.sh`. It exits non-zero
+if a **required** tool is missing, and warns if Gitleaks is too old for the
+`gitleaks git` subcommand used in Step 4.
+
+```bash title="check-tools.sh"
+#!/usr/bin/env bash
+# name | version command | required(1)/optional(0)
+TOOLS=(
+  "git|git --version|1"
+  "jq|jq --version|1"
+  "trufflehog|trufflehog --version|1"
+  "gitleaks|gitleaks version|1"
+  "semgrep|semgrep --version|1"
+  "trivy|trivy --version|1"
+  "osv-scanner|osv-scanner --version|0"
+  "checkov|checkov --version|0"
+  "kubescape|kubescape version|0"
+  "bandit|bandit --version|0"
+  "gosec|gosec -version|0"
+  "sarif|sarif --version|0"
+)
+
+missing_required=0
+printf "%-12s %-9s %s\n" TOOL STATUS VERSION
+for entry in "${TOOLS[@]}"; do
+  IFS='|' read -r name vcmd req <<<"$entry"
+  if command -v "$name" >/dev/null 2>&1; then
+    printf "%-12s \e[32m%-9s\e[0m %s\n" "$name" OK "$($vcmd 2>&1 | grep -m1 -Eo '[0-9]+\.[0-9]+(\.[0-9]+)?' || echo '?')"
+  elif [ "$req" = 1 ]; then
+    printf "%-12s \e[31m%-9s\e[0m %s\n" "$name" MISSING "(required)"; missing_required=1
+  else
+    printf "%-12s \e[33m%-9s\e[0m %s\n" "$name" MISSING "(optional)"
+  fi
+done
+
+# gitleaks needs the `git` subcommand (v8.19+)
+if command -v gitleaks >/dev/null && ! gitleaks git --help >/dev/null 2>&1; then
+  echo "WARN: gitleaks is too old for 'gitleaks git' — upgrade to >= 8.19"
+fi
+
+[ "$missing_required" = 0 ] && echo "All required tools present." || { echo "Install the missing required tools (see table above)."; exit 1; }
+```
+
+## Step 2 — Go to the repository and set variables
+
+Every later step runs **from inside one repository**, and every later
+command reuses the shell variables set here — so run all steps in the same
+terminal session.
+
+<CommandInput
+  vars={{ repo: "/path/to/repo" }}
+  command={`cd {{repo}}
+REPO=$(git rev-parse --show-toplevel)
+NAME=$(basename "$REPO")
+OUT="$(dirname "$REPO")/sast-output/$NAME"
+mkdir -p "$OUT"
+cd "$REPO"`}
+  placeholderMode
+/>
+
+| Command | Meaning |
+| --- | --- |
+| `git rev-parse --show-toplevel` | Absolute path of the repo root — correct even if you `cd`'ed into a sub-folder. |
+| `basename "$REPO"` | The repo's folder name, used to name its report folder. |
+| `OUT="$(dirname "$REPO")/sast-output/$NAME"` | Report folder **one level above** the repo: `../sast-output/<repo>/`. |
+| `mkdir -p "$OUT"` | Creates the report folder (and parents) if missing; no error if it exists. |
+
+Reports land **outside** the repository, so the scanners never scan their
+own output and nothing is added to the working tree. Repos cloned side by
+side share one `sast-output/` folder:
+
+```
+parent-folder/
+├── <repo>/                 # you are here
+└── sast-output/
+    └── <repo>/             # $OUT — all reports for this repo
+```
+
+### Pre-flight check on the clone
+
+The history-based steps are only as complete as the clone:
+
+```bash
+echo "shallow:          $(git rev-parse --is-shallow-repository)"
+echo "remote branches:  $(git for-each-ref refs/remotes --format='%(refname)' | grep -vc '/HEAD$')"
+echo "tags:             $(git for-each-ref refs/tags | wc -l)"
+echo "push URL:         $(git remote get-url --push origin 2>/dev/null)"
+```
+
+| Command | Meaning |
+| --- | --- |
+| `git rev-parse --is-shallow-repository` | `true` if the clone was made with `--depth` and history is missing. |
+| `git for-each-ref refs/remotes --format='%(refname)'` | Lists every remote-tracking branch; `grep -vc '/HEAD$'` counts them, excluding the `origin/HEAD` alias. |
+| `git for-each-ref refs/tags \| wc -l` | Number of tags. |
+| `git remote get-url --push origin` | The URL `git push` would use. |
+
+Act on the results:
+
+- **`shallow: true`** — the secret and forensics scans will miss old
+  commits. Fix with `git fetch --unshallow`.
+- **Few or zero remote branches** — likely a `--single-branch` clone. Fetch
+  everything with:
+  ```bash
+  git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*' && git fetch --all --tags
+  ```
+- **Disable pushing** as a safety guard:
+  ```bash
+  git remote set-url --push origin no_push
+  ```
+- **PR/MR refs (optional)** — not fetched by default and mostly code from
+  external forks. Fetch only if in scope:
+  ```bash
+  git fetch origin '+refs/pull/*/head:refs/remotes/pr/*'                 # GitHub
+  git fetch origin '+refs/merge-requests/*/head:refs/remotes/mr/*'       # GitLab
+  ```
+
+A full clone already holds **every branch** (as `origin/*`), every tag and
+the full history. All history commands below use `--all`, so every branch
+is covered even though only one is checked out on disk.
+
+## Step 3 — Record scope and fingerprint the stack
+
+### Exactly what was assessed
+
+Commit hashes make the scope reproducible:
+
+```bash
+{ date -Iseconds
+  echo "repo:      $NAME"
+  echo "remote:    $(git remote get-url origin 2>/dev/null)"
+  echo "HEAD:      $(git rev-parse HEAD 2>/dev/null || echo EMPTY)  ($(git symbolic-ref --short HEAD 2>/dev/null))"
+  echo "branches:  $(git for-each-ref refs/remotes/origin --format='%(refname)' | grep -vc '/HEAD$')"
+  echo "tags:      $(git for-each-ref refs/tags | wc -l)"
+  echo "commits:   $(git rev-list --all --count 2>/dev/null || echo 0)"
+  echo "first:     $(git log --all --reverse --format=%as 2>/dev/null | head -1)"
+  echo "last:      $(git log --all -1 --format=%as 2>/dev/null)"
+} | tee "$OUT/ASSESSED-SNAPSHOT.txt"
+```
+
+| Command | Meaning |
+| --- | --- |
+| `date -Iseconds` | ISO-8601 timestamp of the assessment. |
+| `git symbolic-ref --short HEAD` | Name of the checked-out branch. |
+| `git rev-list --all --count` | Total commits reachable from any ref. |
+| `git log --all --reverse --format=%as \| head -1` | Date (`%as` = author date, `YYYY-MM-DD`) of the oldest commit. |
+| `git log --all -1 --format=%as` | Date of the newest commit. |
+| `tee <file>` | Prints to the terminal and saves to the file at the same time. |
+
+<Callout type="warn">
+  `git remote get-url origin` can contain an embedded token if the repo was
+  cloned over HTTPS with credentials in the URL. Check the snapshot before
+  sharing it.
+</Callout>
+
+Branch inventory — stale or forgotten branches are worth a look:
+
+```bash
+git for-each-ref --sort=-committerdate refs/remotes/origin \
+  --format='%(committerdate:short)  %(refname:lstrip=3)  %(authorname)' | grep -v '  HEAD  ' \
+  | tee "$OUT/BRANCHES.txt"
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `--sort=-committerdate` | Newest last-commit first (`-` reverses the sort). |
+| `%(refname:lstrip=3)` | Strips `refs/remotes/origin/`, leaving the bare branch name. |
+| `grep -v '  HEAD  '` | Drops the `origin/HEAD` alias row. |
+
+### Stack fingerprint
+
+Decides which scanners and rule packs to run in Steps 5–7:
+
+```bash
+{ echo "-- top extensions:"; git ls-files | sed -n 's/.*\.//p' | sort | uniq -c | sort -rn | head -8
+  echo "-- manifests / lockfiles:"
+  git ls-files | grep -E '(^|/)(package(-lock)?\.json|yarn\.lock|pnpm-lock\.yaml|requirements.*\.txt|Pipfile(\.lock)?|poetry\.lock|pyproject\.toml|go\.(mod|sum)|pom\.xml|build\.gradle(\.kts)?|gradle\.lockfile|Gemfile(\.lock)?|composer\.(json|lock)|Cargo\.(toml|lock)|.*\.csproj|packages\.lock\.json)$'
+  echo "-- IaC / containers / CI:"
+  git ls-files | grep -E '(\.tf$|\.tfvars$|Dockerfile|docker-compose.*\.ya?ml$|Chart\.yaml$|kustomization\.ya?ml$|template\.ya?ml$|serverless\.ya?ml$|\.github/workflows/|\.gitlab-ci\.yml$|bitbucket-pipelines\.yml$|azure-pipelines\.yml$|Jenkinsfile|\.circleci/)' | head -20
+} | tee "$OUT/FINGERPRINT.txt"
+```
+
+| Command | Meaning |
+| --- | --- |
+| `git ls-files` | Lists tracked files only — ignored content (`node_modules/`, `vendor/`, `venv/`, build output) is excluded automatically. |
+| `sed -n 's/.*\.//p'` | Prints only each filename's extension. |
+| `sort \| uniq -c \| sort -rn \| head -8` | Counts each extension and shows the 8 most common. |
+| `grep -E '...'` | Matches dependency manifests/lockfiles, then IaC, container and CI files. |
+
+<Callout type="info">
+  Even though `git ls-files` skips ignored folders, still pass skip flags to
+  the scanners (Step 6) in case dependencies were installed inside the repo.
+</Callout>
+
+## Step 4 — Secret scanning: full history, all refs
+
+### TruffleHog — git mode with verification
+
+```bash
+trufflehog git "file://$REPO" \
+  --results=verified,unknown \
+  --json > "$OUT/trufflehog.json" 2>/dev/null
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `git` | Scan mode — walks git history (every commit reachable from any ref, so every `origin/*` branch). |
+| `"file://$REPO"` | Local repo URI. TruffleHog clones it to a temporary directory before scanning. |
+| `--results=verified,unknown` | Which result types to output: **verified** = confirmed valid by the provider's API; **unknown** = verification was attempted but failed due to an error. The third type, **unverified** (detected, not verified), is left out here to cut noise — the default is all three. |
+| `--json` | One JSON object per finding (newline-delimited), with git metadata. |
+| `2>/dev/null` | Discards progress logs on stderr so only findings reach the file. |
+
+Optional narrowing/safety flags:
+
+| Flag | Meaning |
+| --- | --- |
+| `--results=verified` | Live, confirmed secrets only. |
+| `--branch <ref>` | Scan a single branch. |
+| `--since-commit <ref>` | Only scan commits after this ref. |
+| `--no-verification` | Don't verify the results — no candidate leaves your machine. |
+
+<Callout type="warn">
+  **Verification sends each candidate credential to its provider's API.**
+  Confirm your rules of engagement allow this; if not, add
+  `--no-verification`.
+</Callout>
+
+Tally with git metadata:
+
+```bash
+jq -r 'select(.DetectorName) | [.DetectorName, "verified="+(.Verified|tostring),
+       .SourceMetadata.Data.Git.commit[0:10], .SourceMetadata.Data.Git.file,
+       .SourceMetadata.Data.Git.email, .SourceMetadata.Data.Git.timestamp] | @tsv' \
+  "$OUT/trufflehog.json" | sort -u
+```
+
+| Filter | Meaning |
+| --- | --- |
+| `select(.DetectorName)` | Keeps only finding objects (skips any non-finding lines). |
+| `.Verified\|tostring` | `true`/`false` as text. |
+| `.SourceMetadata.Data.Git.*` | Commit (first 10 chars), file, author email and timestamp of the commit that introduced the secret. |
+| `@tsv` | Tab-separated output, one row per finding. |
+
+### Gitleaks — second engine, git mode
+
+```bash
+gitleaks git "$REPO" \
+  --log-opts="--all" \
+  --report-format sarif --report-path "$OUT/gitleaks.sarif" \
+  --redact || true
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `git` | Scans a local repo's history using `git log -p` under the hood (v8.19+; replaces the deprecated `detect`). |
+| `--log-opts="--all"` | Extra options passed to `git log` — `--all` walks every ref, not only `HEAD`. |
+| `--report-format sarif` | Report format (`json`, `csv`, `junit`, `sarif`, `template`). |
+| `--report-path <file>` | Where to write the report. |
+| `--redact` | Redacts secrets from logs and stdout (100% by default; `--redact=50` keeps part visible). |
+| `\|\| true` | Gitleaks exits `1` when it finds leaks — this keeps a script going. |
+
+<Callout type="info">
+  On Gitleaks older than 8.19, the equivalent is
+  `gitleaks detect --source "$REPO" --log-opts="--all"`.
+</Callout>
+
+### Still in HEAD, or only in history?
+
+The answer changes the remediation: *rotate and remove it from the code*,
+or *rotate and purge the history*. Each finding already records the
+commit that introduced it and the file it's in.
+
+**List all findings from both scanners, numbered:**
+
+```bash
+{ jq -r 'select(.DetectorName) | ["trufflehog", .DetectorName,
+         .SourceMetadata.Data.Git.commit, .SourceMetadata.Data.Git.file,
+         (.SourceMetadata.Data.Git.line|tostring)] | @tsv' "$OUT/trufflehog.json" 2>/dev/null
+  jq -r '.runs[].results[] | ["gitleaks", .ruleId,
+         .partialFingerprints.commitSha, .locations[0].physicalLocation.artifactLocation.uri,
+         (.locations[0].physicalLocation.region.startLine|tostring)] | @tsv' "$OUT/gitleaks.sarif" 2>/dev/null
+} | sort -t$'\t' -k3,5 -u > "$OUT/secrets.tsv"
+
+column -t -s$'\t' -N '#,TOOL,RULE,COMMIT,FILE,LINE' <(nl -w1 -s$'\t' "$OUT/secrets.tsv")
+```
+
+| Command | Meaning |
+| --- | --- |
+| `sort -t$'\t' -k3,5 -u` | Tab-delimited; dedupes on columns 3–5 (commit + file + line), so a secret found by both scanners appears once while different secrets in one file stay separate. |
+| `nl -w1 -s$'\t'` | Prefixes each row with its number (width 1, tab separator). |
+| `column -t -s$'\t' -N '...'` | Aligns the tab-separated rows into a table with the given header names. |
+
+Example output:
+
+```
+#  TOOL        RULE              COMMIT                                    FILE                     LINE
+1  trufflehog  Github            65c0249d167fefa589272260748cbaaaf2c01da3  config/.env.production   1
+2  gitleaks    aws-access-token  a41be07c9d2e8f1a0b3c5d7e9f2a4b6c8d0e1f3a  deploy/terraform.tfvars  12
+```
+
+<Callout type="info">
+  `column -N` (header names) is a util-linux option — it works on Linux but
+  not with macOS's BSD `column`. There, drop `-N '...'` and the table prints
+  without a header row.
+</Callout>
+
+**Pick a finding by its row number** — this sets `commit` and `file`:
+
+<CommandInput
+  vars={{ row: "1" }}
+  command={`n={{row}}
+IFS=$'\\t' read -r _ _ commit file _ < <(sed -n "\${n}p" "$OUT/secrets.tsv")
+echo "commit=$commit  file=$file"`}
+  placeholderMode
+/>
+
+**Investigate it:**
+
+```bash
+[ -n "$commit" ] && [ -n "$file" ] || echo "commit/file not set — redo the previous command"
+
+# still in the checked-out branch, or only in history?
+git cat-file -e "HEAD:$file" 2>/dev/null && echo "still in HEAD" || echo "only in history"
+
+# full lifecycle of the file (added / modified / deleted, by whom)
+git log --all --format='%h %as %ae %s' -- "$file"
+
+# which branches / tags contain the commit that introduced the secret
+git for-each-ref --contains "$commit" --format='%(refname:short)'
+
+# the exact change that introduced it (prints the secret in clear text)
+git show "$commit" -- "$file"
+```
+
+| Command | Meaning |
+| --- | --- |
+| `git cat-file -e "HEAD:$file"` | Exit `0` if the file exists in `HEAD`'s tree — no output, just the status. |
+| `--format='%h %as %ae %s'` | Short hash, author date, author email, subject. |
+| `-- "$file"` | Restricts the log to commits touching that path. |
+| `git for-each-ref --contains <commit>` | Every branch/tag whose history includes the commit. |
+| `git show <commit> -- <file>` | The diff that introduced the secret, limited to that file. |
+
+<Callout type="warn">
+  `git show` prints the secret **unredacted**. Don't paste that output into
+  tickets or reports — use the redacted scanner output as evidence.
+</Callout>
+
+**Or check every finding at once:**
+
+```bash
+while IFS=$'\t' read -r tool rule commit file line; do
+  state=$(git cat-file -e "HEAD:$file" 2>/dev/null && echo "IN-HEAD" || echo "HISTORY")
+  refs=$(git for-each-ref --contains "$commit" --format='%(refname:short)' | paste -sd, -)
+  printf "%-8s %-12s %.10s  %-45s %s\n" "$state" "$rule" "$commit" "$file:$line" "$refs"
+done < "$OUT/secrets.tsv" | tee "$OUT/secrets-location.txt"
+```
+
+If you fetched PR/MR refs (Step 2) and they're the only refs carrying the
+commit, the secret may belong to an external contributor's fork —
+attribute it accordingly.
+
+## Step 5 — SAST: source-code flaws
+
+### Semgrep on the checked-out branch
+
+Always run the language-agnostic packs, plus the language packs matching
+the stack (browse all packs in the [Semgrep Registry](https://semgrep.dev/explore)):
+
+| Stack detected | Semgrep language packs | Extra tool |
+| --- | --- | --- |
+| JavaScript / Node / Vue | `p/javascript p/nodejs` (+ `p/react`, `p/nextjs` if relevant) | — |
+| TypeScript | `p/typescript` | — |
+| Python | `p/python` (+ `p/django` / `p/flask`) | `bandit -r` |
+| Go | `p/golang` | `gosec ./...` |
+| Java / Kotlin | `p/java` (+ `p/kotlin`) | — |
+| PHP | `p/php` | — |
+| Ruby | `p/ruby` | — |
+| C# | `p/csharp` | — |
+| Kubernetes YAML | `p/kubernetes` | see Step 7 |
+
+This picks the language packs automatically from the tracked files and
+stores them in `SEMGREP_LANG` (reused later in this step):
+
+```bash
+SEMGREP_LANG=()
+files=$(git ls-files)
+grep -qE '\.(js|jsx|mjs|cjs|vue)$' <<<"$files" && SEMGREP_LANG+=(--config p/javascript --config p/nodejs)
+grep -qE '\.tsx?$'                 <<<"$files" && SEMGREP_LANG+=(--config p/typescript)
+grep -qE '\.py$'                   <<<"$files" && SEMGREP_LANG+=(--config p/python)
+grep -qE '\.go$'                   <<<"$files" && SEMGREP_LANG+=(--config p/golang)
+grep -qE '\.(java|kt)$'            <<<"$files" && SEMGREP_LANG+=(--config p/java)
+grep -qE '\.php$'                  <<<"$files" && SEMGREP_LANG+=(--config p/php)
+grep -qE '\.rb$'                   <<<"$files" && SEMGREP_LANG+=(--config p/ruby)
+grep -qE '\.cs$'                   <<<"$files" && SEMGREP_LANG+=(--config p/csharp)
+grep -qE '\.ya?ml$'                <<<"$files" && SEMGREP_LANG+=(--config p/kubernetes)
+echo "language packs: ${SEMGREP_LANG[*]:-none}"
+```
+
+Run the scan:
+
+```bash
+semgrep scan "$REPO" \
+  --config p/security-audit --config p/secrets --config p/owasp-top-ten \
+  "${SEMGREP_LANG[@]}" \
+  --sarif --output "$OUT/semgrep.sarif" \
+  --metrics off
+
+jq '[.runs[].results[]] | length' "$OUT/semgrep.sarif"     # number of findings
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `scan <path>` | Scan the given directory. |
+| `--config <pack>` | A rule source — registry pack (`p/...`), local YAML file/directory or URL. Repeatable. |
+| `"${SEMGREP_LANG[@]}"` | Expands the auto-detected language packs (quoted so each `--config p/...` stays one argument). |
+| `--sarif` | Output results in SARIF format. |
+| `--output <file>` | Save results to a file instead of stdout. |
+| `--metrics off` | Disable usage metrics altogether. |
+
+<Callout type="info" title="Why not --config auto?">
+  The source notes that Semgrep refuses to combine `--config auto` with
+  `--metrics off` ("Cannot create auto config when metrics are off"),
+  because auto mode logs in to the Semgrep Registry with your project URL.
+  Explicit packs work with metrics off — but `p/...` packs are still
+  downloaded from the registry, so the scan needs internet access. For
+  air-gapped runs, point `--config` at local rule files.
+
+  Semgrep exits `0` even with findings. To fail a CI job on findings, add
+  `--error` (a plain flag, no value).
+</Callout>
+
+Language-specific extras:
+
+```bash
+git ls-files | grep -q '\.py$'    && bandit -r "$REPO" -f sarif -o "$OUT/bandit.sarif" -q
+git ls-files | grep -q 'go\.mod$' && gosec -fmt sarif -out "$OUT/gosec.sarif" ./...
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `bandit -r <dir>` | Recurse into the directory tree. |
+| `-f sarif` | Output format — needs the `bandit[sarif]` extra (Step 1). |
+| `-o <file>` | Output file. |
+| `-q` | Quiet — suppress non-essential output. |
+| `gosec -fmt sarif` | Output format (`text`, `json`, `sarif`, `html`, ...). |
+| `-out <file>` | Output file instead of stdout. |
+| `./...` | Recursively scan every Go package from the current directory. |
+
+### Other branches (optional, often high-yield)
+
+`git worktree` checks out another branch into a separate folder next to the
+repo, without touching your current checkout:
+
+<CommandInput
+  vars={{ branch: "develop" }}
+  command={`b={{branch}}; safe=\${b//\\//_}; WT="$REPO-wt-$safe"
+git worktree add "$WT" "origin/$b"
+semgrep scan "$WT" --config p/security-audit --config p/owasp-top-ten "\${SEMGREP_LANG[@]}" \\
+  --sarif --output "$OUT/semgrep-$safe.sarif" --metrics off
+git worktree remove "$WT"`}
+  placeholderMode
+/>
+
+| Command | Meaning |
+| --- | --- |
+| `safe=${b//\//_}` | Replaces every `/` in the branch name with `_` (e.g. `feature/login` → `feature_login`) so it's safe in a path/filename. |
+| `git worktree add <dir> origin/<branch>` | Checks out the remote branch (detached) into a new folder. |
+| `git worktree remove <dir>` | Deletes the folder and unregisters the worktree. |
+
+### Diff-aware scan: only what changed recently
+
+<CommandInput
+  vars={{ since: "6 months ago" }}
+  command={`base=$(git rev-list -1 --before="{{since}}" HEAD)
+[ -n "$base" ] || echo "no commit older than that — pick a more recent date"
+semgrep scan "$REPO" --baseline-commit "$base" \\
+  --config p/security-audit --config p/owasp-top-ten "\${SEMGREP_LANG[@]}" \\
+  --sarif --output "$OUT/semgrep-recent.sarif" --metrics off`}
+  placeholderMode
+/>
+
+| Flag | Meaning |
+| --- | --- |
+| `git rev-list -1 --before="<date>" HEAD` | The newest commit on the current branch older than the date (accepts `"6 months ago"`, `"2025-01-01"`, ...). |
+| `--baseline-commit <sha>` | Only show results that are **not** already present in that commit — i.e. findings introduced since. |
+
+<Callout type="warn">
+  Semgrep aborts a `--baseline-commit` run if you're not in a git
+  directory, if there are unstaged changes, or if the hash doesn't exist.
+  If the repo is younger than the window, `base` is empty — the guard line
+  (added here; not in the source notes) warns you before Semgrep fails.
+</Callout>
+
+## Step 6 — Dependency and supply-chain scanning (SCA)
+
+Trivy reads most ecosystems' lockfiles: npm, yarn, pnpm, pip, Poetry,
+Pipenv, Go, Maven, Gradle, Bundler, Composer, Cargo and NuGet.
+
+```bash
+trivy fs "$REPO" --scanners vuln \
+  --skip-dirs node_modules --skip-dirs vendor --skip-dirs .venv \
+  --format sarif --output "$OUT/trivy-deps.sarif"
+
+# readable, high/critical only
+trivy fs "$REPO" --scanners vuln --severity HIGH,CRITICAL \
+  --skip-dirs node_modules --skip-dirs vendor --format table
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `fs <path>` | Scan a local filesystem path. |
+| `--scanners vuln` | Only dependency vulnerabilities. The default is `vuln,secret` — secrets are already covered by Step 4. |
+| `--skip-dirs <dir>` | Skip a directory or glob pattern. Repeatable. |
+| `--severity HIGH,CRITICAL` | Only show these severities (from `UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL`). |
+| `--format sarif\|table` | Output format (`table` is the default). |
+| `--output <file>` | Output file. |
+
+### Second opinion: OSV-Scanner
+
+The command differs between versions: v2 uses `scan source`, v1 uses plain
+`scan`. On v1, `source` is read as a folder name and the scan fails with
+`lstat source: no such file or directory`. This picks the right form:
+
+```bash
+if osv-scanner --version 2>&1 | grep -qE 'version: 1\.'; then
+  OSV=(osv-scanner scan)            # v1.x
+else
+  OSV=(osv-scanner scan source)     # v2.x
+fi
+echo "using: ${OSV[*]}"
+
+"${OSV[@]}" --recursive --format json "$REPO" > "$OUT/osv.json"
+echo "exit=$?"    # 0 = no vulns, 1 = vulns found, 128 = no lockfiles/manifests found
+
+# readable summary
+"${OSV[@]}" --recursive --format table "$REPO"
+
+jq '[.results[]?.packages[].vulnerabilities[]] | length' "$OUT/osv.json" 2>/dev/null   # number of vulnerabilities
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `scan source` | Scan a source directory (the default `scan` subcommand in v2). |
+| `--recursive` | Search all subdirectories, not just the given directory. |
+| `--format json\|table` | Output format. |
+
+<Callout type="warn">
+  **Put every option before the path.** OSV-Scanner stops reading options
+  at the first path, so anything after `"$REPO"` is treated as another
+  folder — e.g. `... "$REPO" --format json` fails with
+  `stat --format: no such file or directory`.
+
+  **Exit codes:** `1` just means vulnerabilities were found. `128` means
+  nothing to scan was found — expected in repos without lockfiles
+  (IaC-only or GitOps repos); `osv.json` stays empty.
+</Callout>
+
+### Supply-chain checks scanners don't flag
+
+- **Typosquats and look-alike names.** Read the direct dependency list by
+  eye (`lodahs` vs `lodash`, `reqeusts` vs `requests`). Confirm whether the
+  package is installed or imported, then find **who added it and when**:
+
+  <CommandInput
+    vars={{ package: "suspicious-pkg" }}
+    command={`git log --all -S '{{package}}' --format='%h %as %an <%ae> %s'`}
+    placeholderMode
+  />
+
+  `-S '<string>'` (the "pickaxe") lists commits that changed the number of
+  occurrences of that string — i.e. added or removed it.
+- **Dependency confusion.** Internal-looking package names without a scope
+  or private registry — check whether the same name exists on the public
+  registry.
+- **Git or URL dependencies, unpinned versions, `postinstall` scripts**, and
+  committed `.npmrc` / `pip.conf` / `settings.xml` files that point at
+  registries with tokens in them.
+
+<Callout type="info">
+  Prioritize CVEs that have a **fixed version** *and* a reachable call path.
+  Note whether each dependency is direct or transitive.
+</Callout>
+
+## Step 7 — IaC, container and CI/CD misconfiguration
+
+```bash
+trivy config "$REPO" --format sarif --output "$OUT/trivy-config.sarif"
+trivy config "$REPO" --severity HIGH,CRITICAL --format table
+```
+
+`trivy config` scans IaC and config files (Terraform, Dockerfile,
+Kubernetes, CloudFormation, Helm, ...) for misconfigurations; the other
+flags mean the same as in Step 6.
+
+Checkov covers Terraform, CloudFormation/SAM, Kubernetes, Helm, Kustomize,
+Dockerfile, Serverless, ARM/Bicep and GitHub/GitLab/Bitbucket CI configs:
+
+```bash
+checkov -d "$REPO" --quiet -o sarif --output-file-path "$OUT" || true
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `-d <dir>` | IaC root directory to scan. |
+| `--quiet` | CLI output shows only failed checks; disables progress bars. |
+| `-o sarif` | Output format. Repeatable (`-o sarif -o cli`). |
+| `--output-file-path <dir>` | **Folder** (not a file) to save the chosen output formats into. |
+| `\|\| true` | Checkov exits non-zero when checks fail — keeps a script going (or use `--soft-fail`). |
+
+Kubescape, only if the repo contains Kubernetes manifests:
+
+```bash
+git grep -qlE '^kind:\s*(Deployment|StatefulSet|DaemonSet|Pod|CronJob|Secret|Role|ClusterRole)' -- '*.yaml' '*.yml' \
+  && kubescape scan "$REPO" --format sarif --output "$OUT/kubescape.sarif"
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `git grep -qlE '...' -- '*.yaml' '*.yml'` | Quietly checks tracked YAML files for a Kubernetes `kind:` (exit status only). |
+| `kubescape scan <dir>` | Scan local manifests, Helm charts or Kustomize directories. |
+| `--format sarif` | Output format (`json`, `junit`, `html`, `sarif`, ...). |
+| `--output <file>` | Report file. |
+
+### Manual review — scanners miss these
+
+- **CI/CD pipelines** (`.github/workflows/*`, `.gitlab-ci.yml`,
+  `bitbucket-pipelines.yml`, `azure-pipelines.yml`, `Jenkinsfile`,
+  `.circleci/`):
+  - Secrets echoed to logs, and `curl | bash`.
+  - Over-broad deploy credentials, and security steps that have been
+    disabled.
+  - GitHub Actions: `pull_request_target` combined with a checkout of PR
+    code, untrusted `${{ github.event.* }}` interpolated into `run:`, and
+    third-party actions not pinned to a SHA.
+  - Self-hosted runners exposed to public PRs.
+  - Review the pipeline's history too: `git log -p --all -- <ci-file>`.
+- **Kubernetes / GitOps:** plaintext `Secret` objects, webhook URLs,
+  `:latest` image tags, root or privileged containers, `hostPath` mounts.
+  Check whether SOPS or sealed-secrets were introduced **after** plaintext
+  secrets had already been committed.
+- **Cloud templates** (Terraform, CloudFormation/SAM, Serverless): wildcard
+  IAM actions or resources, secrets in environment variables, public
+  buckets and endpoints, and helper scripts that assume roles.
+
+## Step 8 — Git-history forensics
+
+Everything here is read-only, and `--all` covers every branch.
+
+```bash
+{ echo "--- sensitive filenames ever committed (even if deleted since)"
+  git log --all --format= --name-only | sort -u | \
+    grep -iE '(\.env($|\.)|\.pem$|\.key$|\.p12$|\.pfx$|\.jks$|id_rsa|id_ed25519|credentials|secret|kubeconfig|\.kube/config|\.npmrc$|\.pypirc$|\.netrc$|\.aws/|service.?account.*\.json|firebase.*\.json|\.tfstate|\.sqlite$|\.sql$|\.bak$|dump)'
+
+  echo "--- deleted files (often the 'oops' commits)"
+  git log --all --diff-filter=D --format='>> %h %as %ae %s' --name-only | head -60
+
+  echo "--- commit messages hinting at removed secrets"
+  git log --all -i -E --grep='secret|password|passwd|token|api.?key|credential|remove.*key|oops|leak|rotate' \
+    --format='%h %as %ae %s'
+} | tee "$OUT/HISTORY-FORENSICS.txt"
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `--format= --name-only` | Empty commit header, so only the touched file paths are printed. |
+| `--diff-filter=D` | Only commits that **deleted** files. |
+| `-i -E --grep='...'` | Case-insensitive extended-regex match on commit messages. |
+
+Pickaxe searches across all history — `-S` finds commits that add or
+remove a string; `-G` matches a regex against the diff lines:
+
+```bash
+git log --all -p -G 'AKIA[0-9A-Z]{16}'                  | head -80   # AWS access keys
+git log --all -p -G '-----BEGIN [A-Z ]*PRIVATE KEY-----' | head -80   # private keys
+git log --all -p -G '(mongodb(\+srv)?|postgres(ql)?|mysql|redis|amqp)://[^ ]+:[^ ]+@' | head -80  # DSNs with creds
+git log --all -p -S 'hooks.slack.com'                    | head -80   # Slack webhooks
+```
+
+`-p` shows the patch (diff) for each matching commit.
+
+Recover a deleted file's content as evidence — `<commit>^` is the parent
+of the commit that deleted it, the last version where the file existed:
+
+<CommandInput
+  vars={{ commit: "abc1234", path: "path/to/deleted.file" }}
+  command={`git show {{commit}}^:{{path}}`}
+  placeholderMode
+/>
+
+Large blobs that may be dumps, backups or binaries (sizes in bytes):
+
+```bash
+git rev-list --all --objects | git cat-file --batch-check='%(objecttype) %(objectsize) %(rest)' \
+  | awk '$1=="blob" && $2>1000000' | sort -k2 -rn | head -20
+```
+
+| Command | Meaning |
+| --- | --- |
+| `git rev-list --all --objects` | Every object reachable from any ref, with its path. |
+| `git cat-file --batch-check='...'` | Prints type, size and path for each object. |
+| `awk '$1=="blob" && $2>1000000'` | Keeps file blobs larger than ~1 MB. |
+
+Contributor inventory, which can reveal personal emails and internal
+hostnames — record it without overreaching:
+
+```bash
+git shortlog -sne --all > "$OUT/AUTHORS.txt"
+```
+
+`-s` summary (commit counts only), `-n` sort by count, `-e` show emails.
+
+## Step 9 — Consolidate and triage
+
+Finding counts for this repo (run on `"$(dirname "$OUT")"` instead to cover
+every repo in the same `sast-output/` folder):
+
+```bash
+find "$OUT" -name '*.sarif' | sort | while read -r f; do
+  printf "%-60s %s\n" "${f#$OUT/}" "$(jq '[.runs[].results[]]|length' "$f" 2>/dev/null)"
+done
+```
+
+Merge the reports for review with sarif-tools:
+
+```bash
+sarif summary "$OUT"
+sarif copy "$OUT" --output "$OUT/combined.sarif"
+```
+
+| Command | Meaning |
+| --- | --- |
+| `sarif summary <dir>` | Findings across all SARIF files, grouped by severity and ordered by occurrences. |
+| `sarif copy <dir> --output <file>` | Writes one new SARIF file combining the inputs. |
+
+You can also open individual `.sarif` files in the VS Code
+[SARIF Viewer](https://marketplace.visualstudio.com/items?itemName=MS-SarifVSCode.sarif-viewer)
+extension — open the repo folder as the workspace root so paths resolve.
+
+Triage order, highest signal first:
+
+1. **Verified live secrets** (TruffleHog `verified=true`), whether in HEAD
+   **or** history — rotate immediately (P1). A secret "only in history" is
+   still exposed to everyone with read access to the repo.
+2. **Supply-chain red flags:** typosquats, dependency confusion, malicious
+   install scripts.
+3. **SAST criticals with dataflow:** injection, `eval` or deserialization
+   of user input, SSRF, path traversal, auth bypass, weak crypto on
+   reachable input.
+4. **Critical and high CVEs** in **direct** dependencies that are actually
+   imported.
+5. **IaC and CI/CD criticals:** privileged or root containers, secrets in
+   manifests (current or historical), wildcard IAM, public exposure,
+   pipeline injection.
+6. **Best-practice noise** — batch it rather than inflating the report.
+
+Every finding should cite `<repo>@<commit-sha>:<path>:<line>` so it can be
+reproduced.
+
+## Step 10 — Handling and cleanup
+
+- **The `.git/` folder holds the entire history**, including every secret
+  ever committed — more sensitive than the checked-out files. Keep clones
+  and `sast-output/` on encrypted storage, don't sync them to shared
+  drives, and securely delete them when the engagement closes.
+- **Never push.** Step 2 sets the push URL to `no_push` — verify with
+  `git remote -v`.
+- **Remove credentials before archiving.**
+  `git config --get-regexp 'remote\..*\.url|credential'` should show no
+  tokens.
+- **Report secrets as rotate-first.** For history-only secrets, recommend a
+  history rewrite ([git filter-repo](https://github.com/newren/git-filter-repo)
+  / BFG) **in addition to** rotation — a rewrite alone isn't enough, since
+  forks, existing clones, CI caches and the hosting platform can still hold
+  the old objects.
+- **State the scope** in the report: the refs and commit hashes from each
+  repo's `ASSESSED-SNAPSHOT.txt`. Out of scope unless provided separately:
+  platform-side CI/CD variables and secrets, branch protection and
+  repository settings, PR/MR discussions and wikis, and refs created after
+  the clone date.
+
+## Step 11 — One-shot script
+
+Runs every **automated** scan above on one repository; it doesn't fetch,
+modify or push anything. Reports go to `../sast-output/<repo>/`. Save as
+`scan-repo.sh`, then run it from inside a repo or pass the repo path:
+
+<CommandInput
+  vars={{ repo: "/path/to/repo" }}
+  command={`bash scan-repo.sh {{repo}}`}
+  placeholderMode
+/>
+
+Several repos, wherever they are:
+
+```bash
+for r in /path/one/repo-a /other/path/repo-b; do bash scan-repo.sh "$r"; done
+```
+
+```bash title="scan-repo.sh"
+#!/usr/bin/env bash
+set -uo pipefail
+
+# --- target repo -----------------------------------------------------------
+cd "${1:-.}" || exit 1
+REPO=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "Not a git repository: ${1:-$PWD}"; exit 1; }
+cd "$REPO"
+NAME=$(basename "$REPO")
+OUT="$(dirname "$REPO")/sast-output/$NAME"      # ../sast-output/<repo>, outside the repo
+mkdir -p "$OUT"
+
+# --- tool check ------------------------------------------------------------
+for t in git jq trufflehog gitleaks semgrep trivy; do
+  command -v "$t" >/dev/null || { echo "Missing required tool: $t (see Step 1)"; exit 1; }
+done
+has() { command -v "$1" >/dev/null 2>&1; }
+
+echo "==================== $NAME  →  $OUT ===================="
+[ "$(git rev-parse --is-shallow-repository)" = true ] && \
+  echo "WARN: shallow clone — history scans will be incomplete (git fetch --unshallow)"
+
+# --- scope snapshot --------------------------------------------------------
+{ date -Iseconds
+  echo "repo: $NAME"
+  echo "HEAD: $(git rev-parse HEAD 2>/dev/null || echo EMPTY)"
+  echo "refs: $(git for-each-ref | wc -l)  commits: $(git rev-list --all --count 2>/dev/null || echo 0)"
+} > "$OUT/ASSESSED-SNAPSHOT.txt"
+
+# --- secrets: full history, every branch -----------------------------------
+echo "[*] trufflehog";  trufflehog git "file://$REPO" --results=verified,unknown --json \
+  > "$OUT/trufflehog.json" 2>/dev/null
+echo "[*] gitleaks";    gitleaks git "$REPO" --log-opts="--all" --report-format sarif \
+  --report-path "$OUT/gitleaks.sarif" --redact >/dev/null 2>&1 || true
+
+# --- history forensics: sensitive filenames ever committed -----------------
+git log --all --format= --name-only 2>/dev/null | sort -u | \
+  grep -iE '(\.env($|\.)|\.pem$|\.key$|\.p12$|\.pfx$|id_rsa|credentials|kubeconfig|\.npmrc$|\.pypirc$|service.?account.*\.json|\.tfstate|\.sql$|\.bak$)' \
+  > "$OUT/history-sensitive-files.txt" || true
+
+# nothing checked out → nothing more to scan
+git rev-parse -q --verify HEAD >/dev/null || { echo "Empty HEAD: history-only scan done."; exit 0; }
+
+# --- SAST ------------------------------------------------------------------
+SEMGREP_LANG=()
+files=$(git ls-files)
+grep -qE '\.(js|jsx|mjs|cjs|vue)$' <<<"$files" && SEMGREP_LANG+=(--config p/javascript --config p/nodejs)
+grep -qE '\.tsx?$'                 <<<"$files" && SEMGREP_LANG+=(--config p/typescript)
+grep -qE '\.py$'                   <<<"$files" && SEMGREP_LANG+=(--config p/python)
+grep -qE '\.go$'                   <<<"$files" && SEMGREP_LANG+=(--config p/golang)
+grep -qE '\.(java|kt)$'            <<<"$files" && SEMGREP_LANG+=(--config p/java)
+grep -qE '\.php$'                  <<<"$files" && SEMGREP_LANG+=(--config p/php)
+grep -qE '\.rb$'                   <<<"$files" && SEMGREP_LANG+=(--config p/ruby)
+grep -qE '\.cs$'                   <<<"$files" && SEMGREP_LANG+=(--config p/csharp)
+grep -qE '\.ya?ml$'                <<<"$files" && SEMGREP_LANG+=(--config p/kubernetes)
+echo "[*] semgrep (${SEMGREP_LANG[*]:-no language packs})"
+semgrep scan "$REPO" --config p/security-audit --config p/secrets --config p/owasp-top-ten \
+  "${SEMGREP_LANG[@]}" \
+  --sarif --output "$OUT/semgrep.sarif" --metrics off --quiet
+if has bandit && git ls-files | grep -q '\.py$'; then
+  echo "[*] bandit"; bandit -r "$REPO" -f sarif -o "$OUT/bandit.sarif" -q || true; fi
+if has gosec && git ls-files | grep -q 'go\.mod$'; then
+  echo "[*] gosec";  gosec -quiet -fmt sarif -out "$OUT/gosec.sarif" ./... || true; fi
+
+# --- SCA -------------------------------------------------------------------
+echo "[*] trivy fs"; trivy fs "$REPO" --scanners vuln --skip-dirs node_modules --skip-dirs vendor --skip-dirs .venv \
+  --format sarif --output "$OUT/trivy-deps.sarif" 2>/dev/null || true
+if has osv-scanner; then
+  if osv-scanner --version 2>&1 | grep -qE 'version: 1\.'; then OSV=(osv-scanner scan); else OSV=(osv-scanner scan source); fi
+  echo "[*] osv-scanner (${OSV[*]})"
+  "${OSV[@]}" --recursive --format json "$REPO" > "$OUT/osv.json" 2>/dev/null || true
+fi
+
+# --- IaC / config / container / CI ----------------------------------------
+echo "[*] trivy config"; trivy config "$REPO" --format sarif --output "$OUT/trivy-config.sarif" 2>/dev/null || true
+has checkov && { echo "[*] checkov"; checkov -d "$REPO" --quiet -o sarif --output-file-path "$OUT" >/dev/null 2>&1 || true; }
+
+# --- summary ---------------------------------------------------------------
+echo; echo "=== SARIF counts ==="
+find "$OUT" -name '*.sarif' | sort | while read -r f; do
+  printf "%-40s %s\n" "${f#$OUT/}" "$(jq '[.runs[].results[]]|length' "$f" 2>/dev/null)"
+done
+echo "TruffleHog hits: $(jq -s 'map(select(.DetectorName))|length' "$OUT/trufflehog.json" 2>/dev/null)"
+echo "Done. Reports in $OUT — now do the manual review (Step 6 supply-chain, Step 7 CI/CD, Step 8 forensics) and triage (Step 9)."
+```
+
+<Callout type="info">
+  The script skips the manual parts — supply-chain review (Step 6), CI/CD
+  review (Step 7), the pickaxe searches (Step 8) and triage (Step 9) — and
+  Kubescape. Run those by hand afterwards.
+</Callout>
+
+## Further reading
+
+<Cards>
+  <Card title="OWASP Code Review Guide" href="https://owasp.org/www-project-code-review-guide/">
+    OWASP's methodology for manual secure code review — the white-box
+    counterpart to the WSTG.
+  </Card>
+  <Card title="Semgrep Registry" href="https://semgrep.dev/explore">
+    Browse the `p/...` rule packs used in Step 5 and their individual rules.
+  </Card>
+  <Card title="TruffleHog on GitHub" href="https://github.com/trufflesecurity/trufflehog">
+    Detectors, scan modes and the full flag reference.
+  </Card>
+  <Card title="Gitleaks on GitHub" href="https://github.com/gitleaks/gitleaks">
+    Config/rule customization, `.gitleaksignore`, and report formats.
+  </Card>
+  <Card title="Trivy installation & docs" href="https://trivy.dev/docs/latest/getting-started/installation/">
+    Install options and the full scanner reference.
+  </Card>
+  <Card title="sarif-tools" href="https://github.com/microsoft/sarif-tools">
+    Summarize, diff, filter and convert SARIF reports.
+  </Card>
+</Cards>
